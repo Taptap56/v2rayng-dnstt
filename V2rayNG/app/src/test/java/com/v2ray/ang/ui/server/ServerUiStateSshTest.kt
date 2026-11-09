@@ -94,4 +94,110 @@ class ServerUiStateSshTest {
         val restored = state.toProfileItem(ProfileItem.create(EConfigType.VMESS))
         assertNull(restored.sshPrivateKey)
     }
+
+    private fun sshWsTlsProfile() = ProfileItem(
+        configType = EConfigType.SSH,
+        server = "ssh.example.com",
+        serverPort = "443",
+        username = "alice",
+        password = "secret",
+        sshMethod = "ws-tls",
+        sshWsPath = "/ssh",
+        sshWsHost = "ws.example.com",
+        sshSni = "sni.example.com",
+        sshSniVersion = "tls1.2",
+        sshInsecure = true,
+    )
+
+    @Test
+    fun sshMethodFieldsRoundTripThroughUiState() {
+        val state = ServerUiState.fromProfileItem(sshWsTlsProfile())
+
+        assertEquals("ws-tls", state.sshMethod)
+        assertEquals("/ssh", state.sshWsPath)
+        assertEquals("ws.example.com", state.sshWsHost)
+        assertEquals("sni.example.com", state.sshSni)
+        assertEquals("tls1.2", state.sshSniVersion)
+        assertEquals(true, state.sshInsecure)
+
+        val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
+        assertEquals("ws-tls", restored.sshMethod)
+        assertEquals("/ssh", restored.sshWsPath)
+        assertEquals("ws.example.com", restored.sshWsHost)
+        assertEquals("sni.example.com", restored.sshSni)
+        assertEquals("tls1.2", restored.sshSniVersion)
+        assertEquals(true, restored.sshInsecure)
+    }
+
+    @Test
+    fun sshPayloadMethodRoundTripThroughUiState() {
+        val profile = ProfileItem(
+            configType = EConfigType.SSH,
+            server = "ssh.example.com",
+            serverPort = "3128",
+            username = "alice",
+            password = "secret",
+            sshMethod = "payload",
+            sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
+        )
+        val state = ServerUiState.fromProfileItem(profile)
+
+        assertEquals("payload", state.sshMethod)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", state.sshPayload)
+
+        val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
+        assertEquals("payload", restored.sshMethod)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", restored.sshPayload)
+    }
+
+    @Test
+    fun sshMethodDefaultsToDirectAndSniVersionToDefault() {
+        val state = ServerUiState.fromProfileItem(ProfileItem.create(EConfigType.SSH))
+
+        assertEquals("", state.sshMethod)
+        assertEquals("", state.sshPayload)
+        assertEquals("", state.sshWsPath)
+        assertEquals("", state.sshWsHost)
+        assertEquals("", state.sshSni)
+        assertEquals("default", state.sshSniVersion)
+        assertEquals(false, state.sshInsecure)
+
+        val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
+        assertNull(restored.sshMethod)
+        assertNull(restored.sshPayload)
+        assertNull(restored.sshWsPath)
+        assertNull(restored.sshWsHost)
+        assertNull(restored.sshSni)
+        assertEquals("default", restored.sshSniVersion)
+        assertEquals(false, restored.sshInsecure)
+    }
+
+    @Test
+    fun oldSlowDnsProfileWithoutMethodShowsAsSlowDns() {
+        // Older SlowDNS profiles have DNSTT fields but no method:
+        // the editor shows them as SlowDNS (the core implies it).
+        val state = ServerUiState.fromProfileItem(sshProfile())
+
+        assertEquals("slowdns", state.sshMethod)
+
+        val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
+        assertEquals("slowdns", restored.sshMethod)
+        assertEquals("ns.example.com", restored.dnsttNS)
+    }
+
+    @Test
+    fun sshMethodFieldsDroppedForNonSshTypes() {
+        val state = ServerUiState.fromProfileItem(sshWsTlsProfile()).apply {
+            configType = EConfigType.VMESS
+        }
+
+        val restored = state.toProfileItem(ProfileItem.create(EConfigType.VMESS))
+        assertNull(restored.sshMethod)
+        assertNull(restored.sshPayload)
+        assertNull(restored.sshWsPath)
+        assertNull(restored.sshWsHost)
+        assertNull(restored.sshSni)
+        assertNull(restored.sshSniVersion)
+        assertNull(restored.sshInsecure)
+    }
 }

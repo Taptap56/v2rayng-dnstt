@@ -134,6 +134,25 @@ object AppConfig {
     const val DNSTT_RECORD_TYPE_NULL = "null"
     const val DNSTT_DEFAULT_RECORD_TYPE = DNSTT_RECORD_TYPE_TXT
 
+    /** SSH transport methods (HTTP Custom style), stored in
+     * ProfileItem.sshMethod. Empty means a direct TCP dial (the
+     * behaviour of older profiles). */
+    const val SSH_METHOD_PAYLOAD = "payload"
+    const val SSH_METHOD_WS = "ws"
+    const val SSH_METHOD_WS_TLS = "ws-tls"
+    const val SSH_METHOD_TLS = "tls"
+    const val SSH_METHOD_SLOWDNS = "slowdns"
+
+    /** SSH SNI versions, stored in ProfileItem.sshSniVersion.
+     * "default" means auto: no forced TLS version, the stack
+     * negotiates. */
+    const val SSH_SNI_VERSION_DEFAULT = "default"
+    const val SSH_SNI_VERSION_TLS10 = "tls1"
+    const val SSH_SNI_VERSION_TLS11 = "tls1.1"
+    const val SSH_SNI_VERSION_TLS12 = "tls1.2"
+    const val SSH_SNI_VERSION_TLS13 = "tls1.3"
+    const val SSH_DEFAULT_SNI_VERSION = SSH_SNI_VERSION_DEFAULT
+
     /** Network-related constants. */
     const val UPLINK = "uplink"
     const val DOWNLINK = "downlink"

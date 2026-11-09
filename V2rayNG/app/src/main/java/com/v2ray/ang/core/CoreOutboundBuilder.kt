@@ -289,6 +289,14 @@ object CoreOutboundBuilder {
             if (profileItem.isSshSlowDns()) {
                 settings.dnsttKcpWindow = AppConfig.DNSTT_DEFAULT_KCP_WINDOW
             }
+            // HTTP Custom style transport method (blank = direct TCP).
+            settings.method = profileItem.sshMethod.nullIfBlank()
+            settings.payload = profileItem.sshPayload.nullIfBlank()
+            settings.wsPath = profileItem.sshWsPath.nullIfBlank()
+            settings.wsHost = profileItem.sshWsHost.nullIfBlank()
+            settings.sni = profileItem.sshSni.nullIfBlank()
+            settings.sniVersion = profileItem.sshSniVersion.nullIfBlank()
+            settings.insecure = profileItem.sshInsecure
         }
 
         return outboundBean

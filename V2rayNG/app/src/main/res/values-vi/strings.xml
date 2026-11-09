@@ -96,6 +96,16 @@
     <string name="server_lab_ssh_username">Tên người dùng</string>
     <string name="server_lab_ssh_password">Mật khẩu</string>
     <string name="server_lab_ssh_private_key">Khóa riêng (Không bắt buộc)</string>
+    <string name="server_lab_ssh_method">SSH method</string>
+    <string name="server_lab_ssh_payload">Custom payload</string>
+    <string name="server_hint_ssh_payload">Placeholders: [host] and [port]</string>
+    <string name="server_lab_ssh_ws_path">WebSocket path</string>
+    <string name="server_hint_ssh_ws_path">/</string>
+    <string name="server_lab_ssh_ws_host">WebSocket host</string>
+    <string name="server_lab_ssh_sni">SNI (Server Name Indication)</string>
+    <string name="server_lab_ssh_sni_version">SNI version</string>
+    <string name="server_lab_ssh_insecure">Allow insecure connection</string>
+    <string name="server_desc_ssh_insecure">Skip TLS certificate verification. Enable only if you trust the server.</string>
     <string name="server_lab_address3">Địa chỉ</string>
     <string name="server_lab_port3">Cổng</string>
     <string name="server_lab_id3">Mật khẩu</string>

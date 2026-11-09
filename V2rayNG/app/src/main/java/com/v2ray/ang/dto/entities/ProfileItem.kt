@@ -93,6 +93,21 @@ data class ProfileItem(
     // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
     // null for every other type. Like password, never logged.
     var sshPrivateKey: String? = null,
+
+    // SSH transport method (HTTP Custom style): "" (direct TCP dial,
+    // default), "payload", "ws", "ws-tls", "tls", "slowdns".
+    // sshPayload is the custom payload template ([host]/[port]);
+    // sshWsPath/sshWsHost the WebSocket path/host; sshSni/sshSniVersion/
+    // sshInsecure the TLS SNI, SNI version ("default" = auto) and
+    // skip-verify toggle. Only used by EConfigType.SSH. New fields
+    // only: absent in older configs, which Gson reads as null.
+    var sshMethod: String? = null,
+    var sshPayload: String? = null,
+    var sshWsPath: String? = null,
+    var sshWsHost: String? = null,
+    var sshSni: String? = null,
+    var sshSniVersion: String? = null,
+    var sshInsecure: Boolean? = null,
 ) {
 
     /** True when DNSTT is enabled and has the NS domain and server public key it needs. */
@@ -103,10 +118,14 @@ data class ProfileItem(
      * True when this is an SSH server dialed through a DNSTT (SlowDNS)
      * tunnel: SSH keeps dnsttEnabled off (no dialerProxy — the tunnel
      * lives inside the core), so the SSH condition is type + NS +
-     * pubkey, not the DNSTT toggle.
+     * pubkey, not the DNSTT toggle. The transport method also gates
+     * it: an explicit non-SlowDNS method (payload/ws/tls/direct) wins
+     * over stale DNSTT fields, while a blank method keeps the old
+     * behaviour (DNSTT fields set implies SlowDNS).
      */
     fun isSshSlowDns(): Boolean =
-        configType == EConfigType.SSH && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank()
+        configType == EConfigType.SSH && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank() &&
+            (sshMethod.isNullOrBlank() || sshMethod == AppConfig.SSH_METHOD_SLOWDNS)
 
     companion object {
         fun create(configType: EConfigType): ProfileItem =

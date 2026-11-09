@@ -145,4 +145,138 @@ class SshFmtTest {
     fun parse_bareSshSchemeReturnsNull() {
         assertNull(SshFmt.parse("ssh://"))
     }
+
+    private fun sshWsTlsProfile() = ProfileItem(
+        configType = EConfigType.SSH,
+        remarks = "ssh ws-tls",
+        server = "example.com",
+        serverPort = "443",
+        username = "alice",
+        password = "secret",
+        sshMethod = "ws-tls",
+        sshWsPath = "/ssh",
+        sshWsHost = "ws.example.com",
+        sshSni = "sni.example.com",
+        sshSniVersion = "tls1.2",
+        sshInsecure = true,
+    )
+
+    @Test
+    fun roundTrip_sshWsTlsMethod() {
+        val uri = "ssh://" + SshFmt.toUri(sshWsTlsProfile())
+
+        val parsed = SshFmt.parse(uri)
+
+        assertEquals(EConfigType.SSH, parsed?.configType)
+        assertEquals("example.com", parsed?.server)
+        assertEquals("443", parsed?.serverPort)
+        assertEquals("ws-tls", parsed?.sshMethod)
+        assertEquals("/ssh", parsed?.sshWsPath)
+        assertEquals("ws.example.com", parsed?.sshWsHost)
+        assertEquals("sni.example.com", parsed?.sshSni)
+        assertEquals("tls1.2", parsed?.sshSniVersion)
+        assertEquals(true, parsed?.sshInsecure)
+    }
+
+    @Test
+    fun roundTrip_sshPayloadMethod() {
+        val profile = ProfileItem(
+            configType = EConfigType.SSH,
+            remarks = "ssh payload",
+            server = "example.com",
+            serverPort = "3128",
+            username = "alice",
+            password = "secret",
+            sshMethod = "payload",
+            sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
+        )
+        val uri = "ssh://" + SshFmt.toUri(profile)
+
+        val parsed = SshFmt.parse(uri)
+
+        assertEquals("payload", parsed?.sshMethod)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", parsed?.sshPayload)
+    }
+
+    @Test
+    fun roundTrip_sshTlsMethod() {
+        val profile = ProfileItem(
+            configType = EConfigType.SSH,
+            remarks = "ssh tls",
+            server = "example.com",
+            serverPort = "443",
+            username = "alice",
+            password = "secret",
+            sshMethod = "tls",
+            sshSni = "sni.example.com",
+            sshSniVersion = "tls1.3",
+            sshInsecure = true,
+        )
+        val uri = "ssh://" + SshFmt.toUri(profile)
+
+        val parsed = SshFmt.parse(uri)
+
+        assertEquals("tls", parsed?.sshMethod)
+        assertEquals("sni.example.com", parsed?.sshSni)
+        assertEquals("tls1.3", parsed?.sshSniVersion)
+        assertEquals(true, parsed?.sshInsecure)
+        assertNull(parsed?.sshWsPath)
+    }
+
+    @Test
+    fun importFromQrOrFile_sshMethodLinkRestoresMethod() {
+        // A literal link as it would arrive from a QR scan or a file.
+        val link = "ssh://alice:secret@example.com:443" +
+            "?method=ws-tls" +
+            "&ws_path=%2Fssh" +
+            "&ws_host=ws.example.com" +
+            "&sni=sni.example.com" +
+            "&sni_version=tls1.2" +
+            "&insecure=1" +
+            "#ssh%20ws-tls"
+
+        val parsed = SshFmt.parse(link)
+
+        assertEquals("ws-tls", parsed?.sshMethod)
+        assertEquals("/ssh", parsed?.sshWsPath)
+        assertEquals("ws.example.com", parsed?.sshWsHost)
+        assertEquals("sni.example.com", parsed?.sshSni)
+        assertEquals("tls1.2", parsed?.sshSniVersion)
+        assertEquals(true, parsed?.sshInsecure)
+        assertEquals("ssh ws-tls", parsed?.remarks)
+    }
+
+    @Test
+    fun toUri_directSshOmitsMethodParams() {
+        val profile = sshDnsttProfile().apply {
+            dnsttNS = null
+            dnsttPubkey = null
+            dnsttResolver = null
+            dnsttRecordType = null
+            // A stale SNI version must not leak into a direct link.
+            sshSniVersion = "default"
+            sshInsecure = true
+        }
+
+        val uri = SshFmt.toUri(profile)
+
+        assertFalse(uri.contains("method="), "direct SSH export must not carry method params: $uri")
+        assertFalse(uri.contains("ws_path="), uri)
+        assertFalse(uri.contains("payload="), uri)
+        assertFalse(uri.contains("sni_version="), uri)
+        assertFalse(uri.contains("insecure="), uri)
+    }
+
+    @Test
+    fun parse_plainSshLinkHasNoMethod() {
+        val parsed = SshFmt.parse("ssh://alice:secret@example.com:22#Plain")
+
+        assertNull(parsed?.sshMethod)
+        assertNull(parsed?.sshPayload)
+        assertNull(parsed?.sshWsPath)
+        assertNull(parsed?.sshWsHost)
+        assertNull(parsed?.sshSni)
+        assertNull(parsed?.sshSniVersion)
+        assertNull(parsed?.sshInsecure)
+    }
 }

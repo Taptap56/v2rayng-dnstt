@@ -1,5 +1,6 @@
 package com.v2ray.ang.fmt
 
+import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.idnHost
@@ -12,11 +13,12 @@ object SshFmt : FmtBase() {
 
     /**
      * Parses an SSH URL into a ProfileItem object, including the DNSTT
-     * (SlowDNS) settings carried as query parameters:
-     * ssh://username:password@host:port?dnstt_ns=...&dnstt_pubkey=...&dnstt_resolver=...&dnstt_record_type=null#remarks
-     * A plain ssh:// link without DNSTT parameters imports as a direct
-     * SSH server, exactly as before. The private key, when present, is
-     * read from the "private_key" query parameter.
+     * (SlowDNS) settings and the transport method (HTTP Custom style)
+     * carried as query parameters:
+     * ssh://username:password@host:port?dnstt_ns=...&dnstt_pubkey=...&dnstt_resolver=...&dnstt_record_type=null&method=ws-tls&ws_path=/ssh&ws_host=...&sni=...&sni_version=tls1.2&insecure=1#remarks
+     * A plain ssh:// link without DNSTT/method parameters imports as a
+     * direct SSH server, exactly as before. The private key, when
+     * present, is read from the "private_key" query parameter.
      *
      * @param str the SSH URL string to parse
      * @return the parsed ProfileItem object, or null if parsing fails
@@ -54,6 +56,18 @@ object SshFmt : FmtBase() {
             config.dnsttResolver = queryParam["dnstt_resolver"]?.nullIfBlank()
             config.dnsttRecordType = queryParam["dnstt_record_type"]?.nullIfBlank()
             config.sshPrivateKey = queryParam["private_key"]?.nullIfBlank()
+            // Transport method (HTTP Custom style). A link without it
+            // is a direct SSH server, as before.
+            config.sshMethod = queryParam["method"]?.nullIfBlank()
+            config.sshPayload = queryParam["payload"]?.nullIfBlank()
+            config.sshWsPath = queryParam["ws_path"]?.nullIfBlank()
+            config.sshWsHost = queryParam["ws_host"]?.nullIfBlank()
+            config.sshSni = queryParam["sni"]?.nullIfBlank()
+            config.sshSniVersion = queryParam["sni_version"]?.nullIfBlank()
+            config.sshInsecure = when (queryParam["insecure"]?.lowercase()) {
+                "1", "true" -> true
+                else -> null
+            }
         }
 
         return config
@@ -63,10 +77,11 @@ object SshFmt : FmtBase() {
      * Converts a ProfileItem object to an SSH URI string (without the
      * "ssh://" scheme prefix; shareConfig prepends it). The DNSTT
      * parameters are only included when the server is actually dialed
-     * through SlowDNS, so sharing a plain SSH server yields the same
-     * URL as before. The password lives in the userinfo, like the
-     * other protocols; the private key is a URL-encoded query
-     * parameter, only when present.
+     * through SlowDNS, and the method parameters only when a method is
+     * set, so sharing a plain SSH server yields the same URL as
+     * before. The password lives in the userinfo, like the other
+     * protocols; the private key is a URL-encoded query parameter,
+     * only when present.
      *
      * @param config the ProfileItem object to convert
      * @return the converted URI string
@@ -80,6 +95,23 @@ object SshFmt : FmtBase() {
             config.dnsttRecordType?.nullIfBlank()?.let { dicQuery["dnstt_record_type"] = it }
         }
         config.sshPrivateKey?.nullIfBlank()?.let { dicQuery["private_key"] = it }
+        // Transport method (HTTP Custom style): only the parameters
+        // of the selected method are included, so a direct SSH server
+        // shares the same URL as before.
+        val method = config.sshMethod?.nullIfBlank()
+        method?.let { dicQuery["method"] = it }
+        if (method == AppConfig.SSH_METHOD_PAYLOAD) {
+            config.sshPayload?.nullIfBlank()?.let { dicQuery["payload"] = it }
+        }
+        if (method == AppConfig.SSH_METHOD_WS || method == AppConfig.SSH_METHOD_WS_TLS) {
+            config.sshWsPath?.nullIfBlank()?.let { dicQuery["ws_path"] = it }
+            config.sshWsHost?.nullIfBlank()?.let { dicQuery["ws_host"] = it }
+        }
+        if (method == AppConfig.SSH_METHOD_WS_TLS || method == AppConfig.SSH_METHOD_TLS) {
+            config.sshSni?.nullIfBlank()?.let { dicQuery["sni"] = it }
+            config.sshSniVersion?.nullIfBlank()?.let { dicQuery["sni_version"] = it }
+            if (config.sshInsecure == true) dicQuery["insecure"] = "1"
+        }
 
         val query = if (dicQuery.isNotEmpty())
             "?" + dicQuery.toList().joinToString(

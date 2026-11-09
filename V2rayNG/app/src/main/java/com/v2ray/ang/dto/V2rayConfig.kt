@@ -100,6 +100,12 @@ data class V2rayConfig(
             var dnsttResolver: String? = null,
             var dnsttKcpWindow: Int? = null,
             var dnsttRecordType: String? = null,
+            var payload: String? = null,
+            var wsPath: String? = null,
+            var wsHost: String? = null,
+            var sni: String? = null,
+            var sniVersion: String? = null,
+            var insecure: Boolean? = null,
             /*Hysteria/Hysteria2*/
             var version: Int? = null,
             /*Wireguard*/
