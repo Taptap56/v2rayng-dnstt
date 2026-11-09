@@ -16,12 +16,14 @@ class DnsttTest {
         ns: String? = "ns.example.com",
         pubkey: String? = "a".repeat(64),
         resolver: String? = null,
+        recordType: String? = null,
     ) = ProfileItem(
         configType = EConfigType.VMESS,
         dnsttEnabled = enabled,
         dnsttNS = ns,
         dnsttPubkey = pubkey,
         dnsttResolver = resolver,
+        dnsttRecordType = recordType,
     )
 
     @Test
@@ -50,25 +52,38 @@ class DnsttTest {
         assertNull(profile.dnsttNS)
         assertNull(profile.dnsttPubkey)
         assertNull(profile.dnsttResolver)
+        assertNull(profile.dnsttRecordType)
         assertFalse(profile.isDnsttEnabled())
     }
 
     @Test
-    fun dnsttSocksOutboundPointsAtLocalListener() {
-        val outbound = CoreOutboundBuilder.createDnsttSocksOutbound()
+    fun dnsttOutboundIsNativeWithTunnelSettings() {
+        val outbound = CoreOutboundBuilder.createDnsttOutbound(
+            dnsttProfile(resolver = "1.1.1.1:53", recordType = "null")
+        )
 
-        assertEquals(AppConfig.TAG_DNSTT_SOCKS, outbound.tag)
-        assertEquals("socks", outbound.protocol)
-        assertEquals(AppConfig.DNSTT_LISTEN_HOST, outbound.settings?.address)
-        assertEquals(AppConfig.DNSTT_LISTEN_PORT, outbound.settings?.port)
-        assertEquals(AppConfig.DEFAULT_LEVEL, outbound.settings?.level)
+        assertEquals(AppConfig.TAG_DNSTT, outbound.tag)
+        assertEquals("dnstt", outbound.protocol)
+        assertEquals("ns.example.com", outbound.settings?.dnsttNs)
+        assertEquals("a".repeat(64), outbound.settings?.dnsttPubkey)
+        assertEquals("1.1.1.1:53", outbound.settings?.dnsttResolver)
+        assertEquals(AppConfig.DNSTT_DEFAULT_KCP_WINDOW, outbound.settings?.dnsttKcpWindow)
+        assertEquals("null", outbound.settings?.dnsttRecordType)
+    }
+
+    @Test
+    fun dnsttOutboundOmitsRecordTypeWhenUnset() {
+        val outbound = CoreOutboundBuilder.createDnsttOutbound(dnsttProfile())
+
+        // The core defaults an empty record type to TXT.
+        assertNull(outbound.settings?.dnsttRecordType)
     }
 
     @Test
     fun dnsttDialerProxyIsSetOnOutbound() {
         val outbound = CoreOutboundBuilder.createInitOutbound(EConfigType.VMESS)!!
-        outbound.ensureSockopt().dialerProxy = AppConfig.TAG_DNSTT_SOCKS
+        outbound.ensureSockopt().dialerProxy = AppConfig.TAG_DNSTT
 
-        assertEquals(AppConfig.TAG_DNSTT_SOCKS, outbound.streamSettings?.sockopt?.dialerProxy)
+        assertEquals(AppConfig.TAG_DNSTT, outbound.streamSettings?.sockopt?.dialerProxy)
     }
 }

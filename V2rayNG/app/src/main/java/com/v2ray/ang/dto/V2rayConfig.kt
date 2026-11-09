@@ -99,6 +99,7 @@ data class V2rayConfig(
             var dnsttPubkey: String? = null,
             var dnsttResolver: String? = null,
             var dnsttKcpWindow: Int? = null,
+            var dnsttRecordType: String? = null,
             /*Hysteria/Hysteria2*/
             var version: Int? = null,
             /*Wireguard*/

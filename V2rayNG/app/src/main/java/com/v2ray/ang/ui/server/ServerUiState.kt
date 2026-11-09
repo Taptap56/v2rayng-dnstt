@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import com.v2ray.ang.AppConfig.DEFAULT_PORT
+import com.v2ray.ang.AppConfig.DNSTT_DEFAULT_RECORD_TYPE
 import com.v2ray.ang.AppConfig.REALITY
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_ADDRESS_V4
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_MTU
@@ -67,6 +68,7 @@ class ServerUiState(
     dnsttNS: String = "",
     dnsttPubkey: String = "",
     dnsttResolver: String = "",
+    dnsttRecordType: String = DNSTT_DEFAULT_RECORD_TYPE,
     sshPrivateKey: String = "",
     isFetchingCert: Boolean = false
 ) {
@@ -121,6 +123,7 @@ class ServerUiState(
     var dnsttNS by mutableStateOf(dnsttNS)
     var dnsttPubkey by mutableStateOf(dnsttPubkey)
     var dnsttResolver by mutableStateOf(dnsttResolver)
+    var dnsttRecordType by mutableStateOf(dnsttRecordType)
     var sshPrivateKey by mutableStateOf(sshPrivateKey)
     var isFetchingCert by mutableStateOf(isFetchingCert)
 
@@ -200,6 +203,7 @@ class ServerUiState(
             dnsttNS = dnsttNS.nullIfBlank(),
             dnsttPubkey = dnsttPubkey.nullIfBlank(),
             dnsttResolver = dnsttResolver.nullIfBlank(),
+            dnsttRecordType = dnsttRecordType.ifBlank { DNSTT_DEFAULT_RECORD_TYPE },
             sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null
         )
     }
@@ -260,6 +264,8 @@ class ServerUiState(
                 dnsttNS = initialConfig.dnsttNS ?: "",
                 dnsttPubkey = initialConfig.dnsttPubkey ?: "",
                 dnsttResolver = initialConfig.dnsttResolver ?: "",
+                dnsttRecordType = initialConfig.dnsttRecordType?.takeIf { it.isNotBlank() }
+                    ?: DNSTT_DEFAULT_RECORD_TYPE,
                 sshPrivateKey = initialConfig.sshPrivateKey ?: ""
             )
 

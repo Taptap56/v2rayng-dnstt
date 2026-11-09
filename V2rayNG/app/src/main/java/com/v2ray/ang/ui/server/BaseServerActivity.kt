@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.REALITY
 import com.v2ray.ang.AppConfig.TLS
 import com.v2ray.ang.R
@@ -368,11 +369,14 @@ abstract class BaseServerActivity : BaseComponentActivity() {
     }
 
     /**
-     * DNSTT (SlowDNS) fields: the tunnel domain (NS), server public key
-     * and resolver. For VMess/VLESS editors they sit behind an enable
-     * toggle ([showToggle]); for the SSH editor the toggle is hidden
-     * and the fields are always shown — blank NS/pubkey means the SSH
-     * server is dialed directly, filled means through the DNSTT tunnel.
+     * DNSTT (SlowDNS) fields: the record type (TXT/NULL), tunnel domain
+     * (NS), server public key and resolver. For VMess/VLESS editors
+     * they sit behind an enable toggle ([showToggle]); for the SSH
+     * editor the toggle is hidden and the fields are always shown —
+     * blank NS/pubkey means the SSH server is dialed directly,
+     * filled means through the DNSTT tunnel. The record type is
+     * stored lowercase ("txt"/"null") and shown uppercase, matching
+     * HTTP Custom's Type field; some servers only answer NULL.
      */
     @Composable
     protected fun DnsttFields(state: ServerUiState, showToggle: Boolean = true) {
@@ -386,6 +390,15 @@ abstract class BaseServerActivity : BaseComponentActivity() {
                 return
             }
         }
+        FormDropdownField(
+            stringResource(R.string.server_lab_dnstt_record_type),
+            state.dnsttRecordType.uppercase(),
+            listOf(
+                AppConfig.DNSTT_RECORD_TYPE_TXT.uppercase(),
+                AppConfig.DNSTT_RECORD_TYPE_NULL.uppercase()
+            ),
+            { state.dnsttRecordType = it.lowercase() }
+        )
         FormTextField(
             stringResource(R.string.server_lab_dnstt_ns),
             state.dnsttNS,

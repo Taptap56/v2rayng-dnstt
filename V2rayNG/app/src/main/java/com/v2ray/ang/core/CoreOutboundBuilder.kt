@@ -116,18 +116,26 @@ object CoreOutboundBuilder {
     }
 
     /**
-     * Builds the DNSTT SOCKS outbound: the bundled dnstt-client's local
-     * listener. The selected server's outbound dials through it via
-     * streamSettings.sockopt.dialerProxy.
+     * Builds the native DNSTT outbound (proxy/dnstt in the forked
+     * core): the selected server's outbound dials through it via
+     * streamSettings.sockopt.dialerProxy. The tunnel lives inside
+     * the core — no bundled binary, no SOCKS hop. The NS domain,
+     * server public key, resolver and record type come from the
+     * profile's DNSTT settings; the KCP window is the app default.
+     * Internal (not private) so the settings mapping is
+     * unit-testable: convert() reads MMKV and cannot run on plain
+     * JVM tests.
      */
-    fun createDnsttSocksOutbound(): OutboundBean {
+    internal fun createDnsttOutbound(profileItem: ProfileItem): OutboundBean {
         return OutboundBean(
-            tag = AppConfig.TAG_DNSTT_SOCKS,
-            protocol = EConfigType.SOCKS.name.lowercase(),
+            tag = AppConfig.TAG_DNSTT,
+            protocol = "dnstt",
             settings = OutboundBean.OutSettingsBean(
-                address = AppConfig.DNSTT_LISTEN_HOST,
-                port = AppConfig.DNSTT_LISTEN_PORT,
-                level = AppConfig.DEFAULT_LEVEL
+                dnsttNs = profileItem.dnsttNS.nullIfBlank(),
+                dnsttPubkey = profileItem.dnsttPubkey.nullIfBlank(),
+                dnsttResolver = profileItem.dnsttResolver.nullIfBlank(),
+                dnsttKcpWindow = AppConfig.DNSTT_DEFAULT_KCP_WINDOW,
+                dnsttRecordType = profileItem.dnsttRecordType.nullIfBlank()
             ),
             streamSettings = OutboundBean.StreamSettingsBean()
         )
@@ -261,10 +269,9 @@ object CoreOutboundBuilder {
      * protocol "ssh", no transport/TLS settings — the core opens a
      * direct-tcpip channel per connection on one persistent SSH client.
      * When the profile carries DNSTT settings, the core dials the SSH
-     * server through the DNSTT tunnel in-process (no dnstt-client
-     * process, no dialerProxy). Internal (not private) so the settings
-     * mapping is unit-testable: convert() reads MMKV and cannot run on
-     * plain JVM tests.
+     * server through the DNSTT tunnel in-process (no dialerProxy).
+     * Internal (not private) so the settings mapping is unit-testable:
+     * convert() reads MMKV and cannot run on plain JVM tests.
      */
     internal fun toOutboundSsh(profileItem: ProfileItem): OutboundBean? {
         val outboundBean = createInitOutbound(EConfigType.SSH)
@@ -278,6 +285,7 @@ object CoreOutboundBuilder {
             settings.dnsttNs = profileItem.dnsttNS.nullIfBlank()
             settings.dnsttPubkey = profileItem.dnsttPubkey.nullIfBlank()
             settings.dnsttResolver = profileItem.dnsttResolver.nullIfBlank()
+            settings.dnsttRecordType = profileItem.dnsttRecordType.nullIfBlank()
             if (profileItem.isSshSlowDns()) {
                 settings.dnsttKcpWindow = AppConfig.DNSTT_DEFAULT_KCP_WINDOW
             }

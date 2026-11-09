@@ -25,6 +25,7 @@ class SshTest {
         ns: String? = "ns.example.com",
         pubkey: String? = "a".repeat(64),
         resolver: String? = null,
+        recordType: String? = null,
     ) = ProfileItem(
         configType = EConfigType.SSH,
         server = server,
@@ -35,6 +36,7 @@ class SshTest {
         dnsttNS = ns,
         dnsttPubkey = pubkey,
         dnsttResolver = resolver,
+        dnsttRecordType = recordType,
     )
 
     @Test
@@ -61,15 +63,16 @@ class SshTest {
         val profile = ProfileItem(configType = EConfigType.SSH)
         assertNull(profile.dnsttNS)
         assertNull(profile.dnsttPubkey)
+        assertNull(profile.dnsttRecordType)
         assertFalse(profile.isSshSlowDns())
-        // SSH does not use the DNSTT toggle: no dnstt-client process,
-        // no dialerProxy — the tunnel lives inside the core.
+        // SSH does not use the DNSTT toggle: no dialerProxy — the
+        // tunnel lives inside the core.
         assertFalse(profile.isDnsttEnabled())
     }
 
     @Test
     fun sshOutboundHasSshProtocolAndSettings() {
-        val outbound = CoreOutboundBuilder.toOutboundSsh(sshProfile())!!
+        val outbound = CoreOutboundBuilder.toOutboundSsh(sshProfile(recordType = "null"))!!
 
         assertEquals("ssh", outbound.protocol)
         assertEquals("10.0.0.1", outbound.settings?.address)
@@ -79,6 +82,7 @@ class SshTest {
         assertEquals("ns.example.com", outbound.settings?.dnsttNs)
         assertEquals("a".repeat(64), outbound.settings?.dnsttPubkey)
         assertNull(outbound.settings?.dnsttResolver)
+        assertEquals("null", outbound.settings?.dnsttRecordType)
         assertEquals(AppConfig.DNSTT_DEFAULT_KCP_WINDOW, outbound.settings?.dnsttKcpWindow)
         // Native SSH: no dialerProxy, no SOCKS hop.
         assertNull(outbound.streamSettings?.sockopt?.dialerProxy)

@@ -2,12 +2,14 @@ name: Build v2rayNG-DNSTT (debug, arm64)
 
 # Debug build of v2rayNG + native DNSTT (SlowDNS) support.
 # No signing keystore needed: Playstore debug variant only.
-# The dnstt-client binary is committed under
-# V2rayNG/app/src/main/assets/dnstt-client and is packaged as an asset.
+# DNSTT is FULLY NATIVE in the core: the "dnstt" outbound
+# (proxy/dnstt) and the SSH outbound's DNSTT dialer live in the
+# forked libv2ray.aar. There is no bundled dnstt-client binary and
+# no SOCKS hop.
 # The core is CUSTOM: libv2ray.aar is built in CI from the forked
 # AndroidLibXrayLite (go.mod replaces xray-core with the Taptap56
-# fork: native SSH outbound + DNSTT dialer in-process), NOT downloaded
-# from the official release.
+# fork: native SSH outbound + DNSTT dialer + DNSTT outbound
+# in-process), NOT downloaded from the official release.
 
 on:
   workflow_dispatch:
@@ -65,10 +67,11 @@ jobs:
         echo "$HOME/go/bin" >> $GITHUB_PATH
 
     # Custom core: AndroidLibXrayLite's go.mod replaces xray-core with
-    # the Taptap56/xray-core fork (native SSH outbound + DNSTT dialer),
-    # so the .aar must be BUILT here instead of downloaded. Same
-    # commands as upstream AndroidLibXrayLite .github/workflows/main.yml
-    # (all ABIs; the APK step below still filters to arm64-v8a).
+    # the Taptap56/xray-core fork (native SSH outbound + DNSTT dialer +
+    # DNSTT outbound), so the .aar must be BUILT here instead of
+    # downloaded. Same commands as upstream AndroidLibXrayLite
+    # .github/workflows/main.yml (all ABIs; the APK step below still
+    # filters to arm64-v8a).
     - name: "Build libv2ray (custom core: SSH SlowDNS)"
       run: |
         cd AndroidLibXrayLite
@@ -86,10 +89,11 @@ jobs:
         AAR=${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
         ls -la "$AAR"
         unzip -l "$AAR" | grep -E "jni/arm64-v8a/libgojni.so|jni/armeabi-v7a/libgojni.so"
-        # The fork's SSH outbound proto must be inside libgojni.so.
-        # (The full type URL is built at runtime, so grep the package
-        # name from the proto descriptor instead.)
+        # The fork's SSH outbound and DNSTT outbound protos must be
+        # inside libgojni.so. (The full type URLs are built at runtime,
+        # so grep the package names from the proto descriptors instead.)
         unzip -p "$AAR" jni/arm64-v8a/libgojni.so | strings | grep -F "xray.proxy.ssh"
+        unzip -p "$AAR" jni/arm64-v8a/libgojni.so | strings | grep -F "xray.proxy.dnstt"
 
     - name: Setup Java
       uses: actions/setup-java@v6.1.0
@@ -113,11 +117,20 @@ jobs:
         cd ${{ github.workspace }}/V2rayNG
         ./gradlew :app:assemblePlaystoreDebug -PABI_FILTERS=arm64-v8a
 
-    - name: Verify APK contents (dnstt-client + libgojni + HEV, arm64-v8a)
+    - name: Verify APK contents (native DNSTT + libgojni + HEV, arm64-v8a)
       run: |
         APK=$(ls ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/playstore/debug/*arm64-v8a*.apk | head -1)
         echo "APK=$APK"
-        unzip -l "$APK" | grep -E "dnstt-client|lib/arm64-v8a/libgojni.so|lib/arm64-v8a/libhev-socks5-tunnel.so|lib/arm64-v8a/libhevsockstun.so"
+        unzip -l "$APK" | grep -E "lib/arm64-v8a/libgojni.so|lib/arm64-v8a/libhev-socks5-tunnel.so|lib/arm64-v8a/libhevsockstun.so"
+        # The fork's SSH outbound and DNSTT outbound protos must be
+        # inside libgojni.so (native DNSTT, no bundled binary).
+        unzip -p "$APK" lib/arm64-v8a/libgojni.so | strings | grep -F "xray.proxy.ssh"
+        unzip -p "$APK" lib/arm64-v8a/libgojni.so | strings | grep -F "xray.proxy.dnstt"
+        # The dnstt-client binary must be GONE: DNSTT is fully native now.
+        if unzip -l "$APK" | grep -q "assets/dnstt-client"; then
+          echo "ERROR: assets/dnstt-client is still in the APK" >&2
+          exit 1
+        fi
 
     - name: Upload arm64-v8a APK
       uses: actions/upload-artifact@v7

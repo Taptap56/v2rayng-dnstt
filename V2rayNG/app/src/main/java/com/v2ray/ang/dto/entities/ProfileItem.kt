@@ -75,16 +75,20 @@ data class ProfileItem(
 
     var browserDialerMode: String? = null,
 
-    // DNSTT (SlowDNS): when enabled, this server's outbound dials through the
-    // bundled dnstt-client (local SOCKS5 on 127.0.0.1:18080) instead of
-    // directly. dnsttNS is the tunnel domain (the user's NS), dnsttPubkey the
-    // DNSTT server public key (64 hex chars), dnsttResolver the DNS resolver
-    // (host:port, default 1.1.1.1:53). New fields only: absent in older
-    // configs, which Gson reads as null (disabled).
+    // DNSTT (SlowDNS): when enabled, this server's outbound dials
+    // through the native "dnstt" outbound in the core (one shared
+    // DNSTT session, in-process) instead of directly. dnsttNS is the
+    // tunnel domain (the user's NS), dnsttPubkey the DNSTT server
+    // public key (64 hex chars), dnsttResolver the DNS resolver
+    // (host:port, default 1.1.1.1:53), dnsttRecordType the DNS record
+    // type ("txt" default, "null" for servers that only answer NULL).
+    // New fields only: absent in older configs, which Gson reads as
+    // null (disabled / TXT default).
     var dnsttEnabled: Boolean? = null,
     var dnsttNS: String? = null,
     var dnsttPubkey: String? = null,
     var dnsttResolver: String? = null,
+    var dnsttRecordType: String? = null,
 
     // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
     // null for every other type. Like password, never logged.
@@ -97,9 +101,9 @@ data class ProfileItem(
 
     /**
      * True when this is an SSH server dialed through a DNSTT (SlowDNS)
-     * tunnel: SSH keeps dnsttEnabled off (no dnstt-client process, no
-     * dialerProxy — the tunnel lives inside the core), so the SSH
-     * condition is type + NS + pubkey, not the DNSTT toggle.
+     * tunnel: SSH keeps dnsttEnabled off (no dialerProxy — the tunnel
+     * lives inside the core), so the SSH condition is type + NS +
+     * pubkey, not the DNSTT toggle.
      */
     fun isSshSlowDns(): Boolean =
         configType == EConfigType.SSH && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank()

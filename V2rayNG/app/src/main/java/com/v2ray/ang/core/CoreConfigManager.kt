@@ -296,11 +296,12 @@ object CoreConfigManager {
             return
         }
         outbound.tag = resolvedOutbound.tag
-        // DNSTT (SlowDNS): the primary (prepended) server dials through the
-        // local dnstt-client SOCKS5 listener instead of directly. Only the
-        // primary is wired: the client runs with that server's NS/pubkey.
+        // DNSTT (SlowDNS): the primary (prepended) server dials through
+        // the native "dnstt" outbound in the core instead of directly.
+        // Only the primary is wired: the DNSTT outbound carries that
+        // server's NS/pubkey/resolver/record-type.
         if (prepend && profile.isDnsttEnabled()) {
-            attachDnsttDialerProxy(outbound, v2rayConfig, existingTags)
+            attachDnsttDialerProxy(outbound, profile, v2rayConfig, existingTags)
         }
         if (prepend) {
             v2rayConfig.outbounds.add(0, outbound)
@@ -311,20 +312,21 @@ object CoreConfigManager {
     }
 
     /**
-     * Adds the DNSTT SOCKS outbound (the bundled dnstt-client's local
-     * listener) once and points [outbound]'s dialerProxy at it, so Xray dials
+     * Adds the native DNSTT outbound (proxy/dnstt in the forked core)
+     * once and points [outbound]'s dialerProxy at it, so Xray dials
      * this server through the DNSTT tunnel.
      */
     private fun attachDnsttDialerProxy(
         outbound: V2rayConfig.OutboundBean,
+        profile: ProfileItem,
         v2rayConfig: V2rayConfig,
         existingTags: MutableSet<String>,
     ) {
-        val dnsttTag = AppConfig.TAG_DNSTT_SOCKS
+        val dnsttTag = AppConfig.TAG_DNSTT
         if (dnsttTag !in existingTags) {
-            v2rayConfig.outbounds.add(CoreOutboundBuilder.createDnsttSocksOutbound())
+            v2rayConfig.outbounds.add(CoreOutboundBuilder.createDnsttOutbound(profile))
             existingTags.add(dnsttTag)
-            LogUtil.i(AppConfig.TAG, "DNSTT: added SOCKS outbound '$dnsttTag'")
+            LogUtil.i(AppConfig.TAG, "DNSTT: added native outbound '$dnsttTag'")
         }
         outbound.ensureSockopt().dialerProxy = dnsttTag
     }

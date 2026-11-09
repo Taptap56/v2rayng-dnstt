@@ -18,6 +18,7 @@ class ServerUiStateSshTest {
         dnsttNS = "ns.example.com",
         dnsttPubkey = "b".repeat(64),
         dnsttResolver = "1.1.1.1:53",
+        dnsttRecordType = "null",
     )
 
     @Test
@@ -35,6 +36,7 @@ class ServerUiStateSshTest {
         assertEquals("ns.example.com", state.dnsttNS)
         assertEquals("b".repeat(64), state.dnsttPubkey)
         assertEquals("1.1.1.1:53", state.dnsttResolver)
+        assertEquals("null", state.dnsttRecordType)
 
         val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
         assertEquals("ssh.example.com", restored.server)
@@ -48,6 +50,7 @@ class ServerUiStateSshTest {
         assertEquals("ns.example.com", restored.dnsttNS)
         assertEquals("b".repeat(64), restored.dnsttPubkey)
         assertEquals("1.1.1.1:53", restored.dnsttResolver)
+        assertEquals("null", restored.dnsttRecordType)
     }
 
     @Test
@@ -60,6 +63,7 @@ class ServerUiStateSshTest {
         assertEquals("", state.dnsttNS)
         assertEquals("", state.dnsttPubkey)
         assertEquals("", state.dnsttResolver)
+        assertEquals("txt", state.dnsttRecordType)
 
         val restored = state.toProfileItem(ProfileItem.create(EConfigType.SSH))
         assertEquals("", restored.username)
@@ -68,6 +72,7 @@ class ServerUiStateSshTest {
         assertNull(restored.dnsttNS)
         assertNull(restored.dnsttPubkey)
         assertNull(restored.dnsttResolver)
+        assertEquals("txt", restored.dnsttRecordType)
     }
 
     @Test

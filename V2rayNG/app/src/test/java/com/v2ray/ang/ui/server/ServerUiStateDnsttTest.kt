@@ -16,6 +16,7 @@ class ServerUiStateDnsttTest {
         dnsttNS = "ns.example.com",
         dnsttPubkey = "b".repeat(64),
         dnsttResolver = "1.1.1.1:53",
+        dnsttRecordType = "null",
     )
 
     @Test
@@ -26,12 +27,14 @@ class ServerUiStateDnsttTest {
         assertEquals("ns.example.com", state.dnsttNS)
         assertEquals("b".repeat(64), state.dnsttPubkey)
         assertEquals("1.1.1.1:53", state.dnsttResolver)
+        assertEquals("null", state.dnsttRecordType)
 
         val restored = state.toProfileItem(ProfileItem.create(EConfigType.VMESS))
         assertEquals(true, restored.dnsttEnabled)
         assertEquals("ns.example.com", restored.dnsttNS)
         assertEquals("b".repeat(64), restored.dnsttPubkey)
         assertEquals("1.1.1.1:53", restored.dnsttResolver)
+        assertEquals("null", restored.dnsttRecordType)
     }
 
     @Test
@@ -42,12 +45,16 @@ class ServerUiStateDnsttTest {
         assertEquals("", state.dnsttNS)
         assertEquals("", state.dnsttPubkey)
         assertEquals("", state.dnsttResolver)
+        // The record type defaults to TXT (the core default) even
+        // when the profile never stored one.
+        assertEquals("txt", state.dnsttRecordType)
 
         val restored = state.toProfileItem(ProfileItem.create(EConfigType.VMESS))
         assertEquals(false, restored.dnsttEnabled)
         assertNull(restored.dnsttNS)
         assertNull(restored.dnsttPubkey)
         assertNull(restored.dnsttResolver)
+        assertEquals("txt", restored.dnsttRecordType)
     }
 
     @Test
