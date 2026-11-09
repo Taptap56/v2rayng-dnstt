@@ -368,19 +368,23 @@ abstract class BaseServerActivity : BaseComponentActivity() {
     }
 
     /**
-     * DNSTT (SlowDNS) fields: enable toggle plus the tunnel domain (NS),
-     * server public key and resolver. Shown on VMess/VLESS editors; when
-     * enabled, the server's outbound dials through the bundled dnstt-client.
+     * DNSTT (SlowDNS) fields: the tunnel domain (NS), server public key
+     * and resolver. For VMess/VLESS editors they sit behind an enable
+     * toggle ([showToggle]); for the SSH editor the toggle is hidden
+     * and the fields are always shown — blank NS/pubkey means the SSH
+     * server is dialed directly, filled means through the DNSTT tunnel.
      */
     @Composable
-    protected fun DnsttFields(state: ServerUiState) {
-        SettingsSwitchItem(
-            title = stringResource(R.string.server_lab_dnstt),
-            checked = state.dnsttEnabled,
-            onCheckedChange = { state.dnsttEnabled = it }
-        )
-        if (!state.dnsttEnabled) {
-            return
+    protected fun DnsttFields(state: ServerUiState, showToggle: Boolean = true) {
+        if (showToggle) {
+            SettingsSwitchItem(
+                title = stringResource(R.string.server_lab_dnstt),
+                checked = state.dnsttEnabled,
+                onCheckedChange = { state.dnsttEnabled = it }
+            )
+            if (!state.dnsttEnabled) {
+                return
+            }
         }
         FormTextField(
             stringResource(R.string.server_lab_dnstt_ns),
@@ -415,6 +419,14 @@ abstract class BaseServerActivity : BaseComponentActivity() {
     protected open fun validateProtocolConfig(config: ProfileItem): Boolean = true
 
     protected open fun validateCommonConfig(state: ServerUiState, config: ProfileItem): Boolean {
+
+        // SSH needs an auth method: password, private key, or both.
+        if (config.configType == EConfigType.SSH &&
+            config.password.isNullOrBlank() && config.sshPrivateKey.isNullOrBlank()
+        ) {
+            state.isPasswordError = true
+            return false
+        }
 
         if (config.password.isNullOrBlank()) {
             state.isPasswordError = true

@@ -67,6 +67,7 @@ class ServerUiState(
     dnsttNS: String = "",
     dnsttPubkey: String = "",
     dnsttResolver: String = "",
+    sshPrivateKey: String = "",
     isFetchingCert: Boolean = false
 ) {
     var configType by mutableStateOf(configType)
@@ -120,6 +121,7 @@ class ServerUiState(
     var dnsttNS by mutableStateOf(dnsttNS)
     var dnsttPubkey by mutableStateOf(dnsttPubkey)
     var dnsttResolver by mutableStateOf(dnsttResolver)
+    var sshPrivateKey by mutableStateOf(sshPrivateKey)
     var isFetchingCert by mutableStateOf(isFetchingCert)
 
     var isRemarksError by mutableStateOf(false)
@@ -132,6 +134,7 @@ class ServerUiState(
         val isVless = configType == EConfigType.VLESS
         val isShadowsocks = configType == EConfigType.SHADOWSOCKS
         val isSocksOrHttp = configType == EConfigType.SOCKS || configType == EConfigType.HTTP
+        val isSsh = configType == EConfigType.SSH
         val isWireguard = configType == EConfigType.WIREGUARD
         val isHysteria2 = configType == EConfigType.HYSTERIA2
 
@@ -147,7 +150,7 @@ class ServerUiState(
                 else -> null
             },
             flow = if (isVless) flow else null,
-            username = if (isSocksOrHttp) username else null,
+            username = if (isSocksOrHttp || isSsh) username else null,
             secretKey = if (isWireguard) secretKey else null,
             publicKey = when {
                 isWireguard -> publicKey
@@ -196,7 +199,8 @@ class ServerUiState(
             dnsttEnabled = dnsttEnabled,
             dnsttNS = dnsttNS.nullIfBlank(),
             dnsttPubkey = dnsttPubkey.nullIfBlank(),
-            dnsttResolver = dnsttResolver.nullIfBlank()
+            dnsttResolver = dnsttResolver.nullIfBlank(),
+            sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null
         )
     }
 
@@ -255,7 +259,8 @@ class ServerUiState(
                 dnsttEnabled = initialConfig.dnsttEnabled == true,
                 dnsttNS = initialConfig.dnsttNS ?: "",
                 dnsttPubkey = initialConfig.dnsttPubkey ?: "",
-                dnsttResolver = initialConfig.dnsttResolver ?: ""
+                dnsttResolver = initialConfig.dnsttResolver ?: "",
+                sshPrivateKey = initialConfig.sshPrivateKey ?: ""
             )
 
         fun from(

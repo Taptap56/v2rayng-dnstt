@@ -41,6 +41,7 @@
     <string name="menu_item_import_config_manually_vless">添加 [VLESS]</string>
     <string name="menu_item_import_config_manually_ss">添加 [Shadowsocks]</string>
     <string name="menu_item_import_config_manually_socks">添加 [SOCKS]</string>
+    <string name="menu_item_import_config_manually_ssh">添加 [SSH]</string>
     <string name="menu_item_import_config_manually_http">添加 [HTTP]</string>
     <string name="menu_item_import_config_manually_trojan">添加 [Trojan]</string>
     <string name="menu_item_import_config_manually_wireguard">添加 [WireGuard]</string>
@@ -90,6 +91,9 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_lab_ssh_username">用户名</string>
+    <string name="server_lab_ssh_password">密码</string>
+    <string name="server_lab_ssh_private_key">私钥 (可选)</string>
     <string name="server_lab_address3">服务器地址</string>
     <string name="server_lab_port3">服务器端口</string>
     <string name="server_lab_id3">密码</string>

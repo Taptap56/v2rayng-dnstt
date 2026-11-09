@@ -41,6 +41,7 @@
     <string name="menu_item_import_config_manually_vless">Добавить VLESS</string>
     <string name="menu_item_import_config_manually_ss">Добавить Shadowsocks</string>
     <string name="menu_item_import_config_manually_socks">Добавить SOCKS</string>
+    <string name="menu_item_import_config_manually_ssh">Добавить SSH</string>
     <string name="menu_item_import_config_manually_http">Добавить HTTP</string>
     <string name="menu_item_import_config_manually_trojan">Добавить Trojan</string>
     <string name="menu_item_import_config_manually_wireguard">Добавить WireGuard</string>
@@ -90,6 +91,9 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_lab_ssh_username">Пользователь</string>
+    <string name="server_lab_ssh_password">Пароль</string>
+    <string name="server_lab_ssh_private_key">Приватный ключ (необязательно)</string>
     <string name="server_lab_address3">Адрес</string>
     <string name="server_lab_port3">Порт</string>
     <string name="server_lab_id3">Пароль</string>

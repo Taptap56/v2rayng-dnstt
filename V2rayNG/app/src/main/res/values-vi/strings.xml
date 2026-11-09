@@ -41,6 +41,7 @@
     <string name="menu_item_import_config_manually_vless">Thêm [VLESS]</string>
     <string name="menu_item_import_config_manually_ss">Thêm [Shadowsocks]</string>
     <string name="menu_item_import_config_manually_socks">Thêm [SOCKS]</string>
+    <string name="menu_item_import_config_manually_ssh">Thêm [SSH]</string>
     <string name="menu_item_import_config_manually_http">Thêm [HTTP]</string>
     <string name="menu_item_import_config_manually_trojan">Thêm [Trojan]</string>
     <string name="menu_item_import_config_manually_wireguard">Thêm [WireGuard]</string>
@@ -90,6 +91,9 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_lab_ssh_username">Tên người dùng</string>
+    <string name="server_lab_ssh_password">Mật khẩu</string>
+    <string name="server_lab_ssh_private_key">Khóa riêng (Không bắt buộc)</string>
     <string name="server_lab_address3">Địa chỉ</string>
     <string name="server_lab_port3">Cổng</string>
     <string name="server_lab_id3">Mật khẩu</string>

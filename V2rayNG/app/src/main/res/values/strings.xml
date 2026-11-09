@@ -41,6 +41,7 @@
     <string name="menu_item_import_config_manually_vless">Add [VLESS]</string>
     <string name="menu_item_import_config_manually_ss">Add [Shadowsocks]</string>
     <string name="menu_item_import_config_manually_socks">Add [SOCKS]</string>
+    <string name="menu_item_import_config_manually_ssh">Add [SSH]</string>
     <string name="menu_item_import_config_manually_http">Add [HTTP]</string>
     <string name="menu_item_import_config_manually_trojan">Add [Trojan]</string>
     <string name="menu_item_import_config_manually_wireguard">Add [WireGuard]</string>
@@ -90,6 +91,9 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_lab_ssh_username">Username</string>
+    <string name="server_lab_ssh_password">Password</string>
+    <string name="server_lab_ssh_private_key">Private key (optional)</string>
     <string name="server_lab_address3">address</string>
     <string name="server_lab_port3">port</string>
     <string name="server_lab_id3">password</string>

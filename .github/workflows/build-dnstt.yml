@@ -4,6 +4,10 @@ name: Build v2rayNG-DNSTT (debug, arm64)
 # No signing keystore needed: Playstore debug variant only.
 # The dnstt-client binary is committed under
 # V2rayNG/app/src/main/assets/dnstt-client and is packaged as an asset.
+# The core is CUSTOM: libv2ray.aar is built in CI from the forked
+# AndroidLibXrayLite (go.mod replaces xray-core with the Taptap56
+# fork: native SSH outbound + DNSTT dialer in-process), NOT downloaded
+# from the official release.
 
 on:
   workflow_dispatch:
@@ -50,21 +54,42 @@ jobs:
       run: |
         cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/V2rayNG/app
 
-    - name: Fetch AndroidLibXrayLite tag
-      run: |
-        pushd AndroidLibXrayLite
-        CURRENT_TAG=$(git describe --tags --abbrev=0)
-        echo "Current tag in this repo: $CURRENT_TAG"
-        echo "CURRENT_TAG=$CURRENT_TAG" >> $GITHUB_ENV
-        popd
-
-    - name: Download libv2ray
-      uses: robinraju/release-downloader@v1.13
+    - name: Setup Go
+      uses: actions/setup-go@v6
       with:
-        repository: '2dust/AndroidLibXrayLite'
-        tag: ${{ env.CURRENT_TAG }}
-        fileName: 'libv2ray.aar'
-        out-file-path: V2rayNG/app/libs/
+        go-version-file: 'AndroidLibXrayLite/go.mod'
+
+    - name: Install gomobile
+      run: |
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        echo "$HOME/go/bin" >> $GITHUB_PATH
+
+    # Custom core: AndroidLibXrayLite's go.mod replaces xray-core with
+    # the Taptap56/xray-core fork (native SSH outbound + DNSTT dialer),
+    # so the .aar must be BUILT here instead of downloaded. Same
+    # commands as upstream AndroidLibXrayLite .github/workflows/main.yml
+    # (all ABIs; the APK step below still filters to arm64-v8a).
+    - name: "Build libv2ray (custom core: SSH SlowDNS)"
+      run: |
+        cd AndroidLibXrayLite
+        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/30.0.16248370
+        mkdir -p assets data
+        bash gen_assets.sh download
+        cp -v data/*.dat assets/
+        gomobile init
+        go mod tidy
+        gomobile bind -v -androidapi 24 -trimpath -ldflags='-s -w -buildid= -checklinkname=0' ./
+        cp -v libv2ray.aar ${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
+
+    - name: Verify libv2ray.aar (custom core)
+      run: |
+        AAR=${{ github.workspace }}/V2rayNG/app/libs/libv2ray.aar
+        ls -la "$AAR"
+        unzip -l "$AAR" | grep -E "jni/arm64-v8a/libgojni.so|jni/armeabi-v7a/libgojni.so"
+        # The fork's SSH outbound proto must be inside libgojni.so.
+        # (The full type URL is built at runtime, so grep the package
+        # name from the proto descriptor instead.)
+        unzip -p "$AAR" jni/arm64-v8a/libgojni.so | strings | grep -F "xray.proxy.ssh"
 
     - name: Setup Java
       uses: actions/setup-java@v6.1.0
@@ -72,14 +97,16 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Run DNSTT unit tests
+    - name: Run DNSTT + SSH unit tests
       run: |
         cd ${{ github.workspace }}/V2rayNG
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
         ./gradlew :app:testPlaystoreDebugUnitTest \
           --tests "com.v2ray.ang.core.DnsttTest" \
-          --tests "com.v2ray.ang.ui.server.ServerUiStateDnsttTest"
+          --tests "com.v2ray.ang.ui.server.ServerUiStateDnsttTest" \
+          --tests "com.v2ray.ang.core.SshTest" \
+          --tests "com.v2ray.ang.ui.server.ServerUiStateSshTest"
 
     - name: Build APK (arm64, Playstore debug)
       run: |

@@ -32,6 +32,7 @@ object CoreOutboundBuilder {
             EConfigType.WIREGUARD -> toOutboundWireguard(profileItem)
             EConfigType.HYSTERIA2 -> toOutboundHysteria2(profileItem)
             EConfigType.HTTP -> toOutboundHttp(profileItem)
+            EConfigType.SSH -> toOutboundSsh(profileItem)
             else -> null
         }
 
@@ -53,6 +54,7 @@ object CoreOutboundBuilder {
                 || protocol.equals(EConfigType.WIREGUARD.name, true)
                 || protocol.equals(EConfigType.HYSTERIA2.name, true)
                 || protocol.equals(EConfigType.HYSTERIA.name, true)
+                || protocol.equals(EConfigType.SSH.name, true)
             ) {
                 muxEnabled = false
             } else if (outbound.streamSettings?.network == NetworkType.XHTTP.type) {
@@ -87,6 +89,7 @@ object CoreOutboundBuilder {
             EConfigType.SHADOWSOCKS,
             EConfigType.SOCKS,
             EConfigType.HTTP,
+            EConfigType.SSH,
             EConfigType.TROJAN -> OutboundBean(
                 protocol = configType.name.lowercase(),
                 settings = OutboundBean.OutSettingsBean(),
@@ -247,6 +250,36 @@ object CoreOutboundBuilder {
             if (profileItem.username.isNotNullEmpty()) {
                 settings.user = profileItem.username.orEmpty()
                 settings.pass = profileItem.password.orEmpty()
+            }
+        }
+
+        return outboundBean
+    }
+
+    /**
+     * Builds the native SSH outbound (proxy/ssh in the forked core):
+     * protocol "ssh", no transport/TLS settings — the core opens a
+     * direct-tcpip channel per connection on one persistent SSH client.
+     * When the profile carries DNSTT settings, the core dials the SSH
+     * server through the DNSTT tunnel in-process (no dnstt-client
+     * process, no dialerProxy). Internal (not private) so the settings
+     * mapping is unit-testable: convert() reads MMKV and cannot run on
+     * plain JVM tests.
+     */
+    internal fun toOutboundSsh(profileItem: ProfileItem): OutboundBean? {
+        val outboundBean = createInitOutbound(EConfigType.SSH)
+
+        outboundBean?.settings?.let { settings ->
+            settings.address = getServerAddress(profileItem)
+            settings.port = profileItem.serverPort.orEmpty().toInt()
+            settings.username = profileItem.username
+            settings.password = profileItem.password
+            settings.privateKey = profileItem.sshPrivateKey.nullIfBlank()
+            settings.dnsttNs = profileItem.dnsttNS.nullIfBlank()
+            settings.dnsttPubkey = profileItem.dnsttPubkey.nullIfBlank()
+            settings.dnsttResolver = profileItem.dnsttResolver.nullIfBlank()
+            if (profileItem.isSshSlowDns()) {
+                settings.dnsttKcpWindow = AppConfig.DNSTT_DEFAULT_KCP_WINDOW
             }
         }
 

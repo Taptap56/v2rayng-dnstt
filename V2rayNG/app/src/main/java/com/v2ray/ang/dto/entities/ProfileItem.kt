@@ -85,11 +85,24 @@ data class ProfileItem(
     var dnsttNS: String? = null,
     var dnsttPubkey: String? = null,
     var dnsttResolver: String? = null,
+
+    // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
+    // null for every other type. Like password, never logged.
+    var sshPrivateKey: String? = null,
 ) {
 
     /** True when DNSTT is enabled and has the NS domain and server public key it needs. */
     fun isDnsttEnabled(): Boolean =
         dnsttEnabled == true && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank()
+
+    /**
+     * True when this is an SSH server dialed through a DNSTT (SlowDNS)
+     * tunnel: SSH keeps dnsttEnabled off (no dnstt-client process, no
+     * dialerProxy — the tunnel lives inside the core), so the SSH
+     * condition is type + NS + pubkey, not the DNSTT toggle.
+     */
+    fun isSshSlowDns(): Boolean =
+        configType == EConfigType.SSH && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank()
 
     companion object {
         fun create(configType: EConfigType): ProfileItem =

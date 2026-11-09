@@ -223,6 +223,7 @@ object AppConfig {
     const val SOCKS = "socks://"
     const val SOCKS4 = "socks4://"
     const val SOCKS5 = "socks5://"
+    const val SSH = "ssh://"
     const val HTTP = "http://"
     const val VLESS = "vless://"
     const val TROJAN = "trojan://"
@@ -284,6 +285,7 @@ object AppConfig {
     const val DNS_YANDEX_DOMAIN = "common.dot.dns.yandex.net"
 
     const val DEFAULT_PORT = 443
+    const val DEFAULT_SSH_PORT = 22
     const val DEFAULT_SECURITY = "auto"
     const val DEFAULT_LEVEL = 8
     const val DEFAULT_NETWORK = "tcp"

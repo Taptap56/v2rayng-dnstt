@@ -209,6 +209,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.VLESS.value -> Intent(this, ServerVlessActivity::class.java)
             EConfigType.SHADOWSOCKS.value -> Intent(this, ServerShadowsocksActivity::class.java)
             EConfigType.SOCKS.value -> Intent(this, ServerSocksActivity::class.java)
+            EConfigType.SSH.value -> Intent(this, ServerSshActivity::class.java)
             EConfigType.HTTP.value -> Intent(this, ServerHttpActivity::class.java)
             EConfigType.TROJAN.value -> Intent(this, ServerTrojanActivity::class.java)
             EConfigType.WIREGUARD.value -> Intent(this, ServerWireguardActivity::class.java)
@@ -261,6 +262,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.VLESS -> ServerVlessActivity::class.java
             EConfigType.SHADOWSOCKS -> ServerShadowsocksActivity::class.java
             EConfigType.SOCKS -> ServerSocksActivity::class.java
+            EConfigType.SSH -> ServerSshActivity::class.java
             EConfigType.HTTP -> ServerHttpActivity::class.java
             EConfigType.TROJAN -> ServerTrojanActivity::class.java
             EConfigType.WIREGUARD -> ServerWireguardActivity::class.java

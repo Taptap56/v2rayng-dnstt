@@ -41,6 +41,7 @@
     <string name="menu_item_import_config_manually_vless">ٱووردن [VLESS]</string>
     <string name="menu_item_import_config_manually_ss">ٱووردن [Shadowsocks]</string>
     <string name="menu_item_import_config_manually_socks">ٱووردن [SOCKS]</string>
+    <string name="menu_item_import_config_manually_ssh">ٱووردن [SSH]</string>
     <string name="menu_item_import_config_manually_http">ٱووردن [HTTP]</string>
     <string name="menu_item_import_config_manually_trojan">ٱووردن [Trojan]</string>
     <string name="menu_item_import_config_manually_wireguard">ٱووردن [WireGuard]</string>
@@ -90,6 +91,9 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_lab_ssh_username">نوم منتوری</string>
+    <string name="server_lab_ssh_password">رزم</string>
+    <string name="server_lab_ssh_private_key">Private key (optional)</string>
     <string name="server_lab_address3">نشۊوی</string>
     <string name="server_lab_port3">پورت</string>
     <string name="server_lab_id3">رزم</string>

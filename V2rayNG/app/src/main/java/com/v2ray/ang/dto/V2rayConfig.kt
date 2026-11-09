@@ -92,6 +92,13 @@ data class V2rayConfig(
             var password: String? = null,
             /*Shadowsocks*/
             var method: String? = null,
+            /*SSH*/
+            var username: String? = null,
+            var privateKey: String? = null,
+            var dnsttNs: String? = null,
+            var dnsttPubkey: String? = null,
+            var dnsttResolver: String? = null,
+            var dnsttKcpWindow: Int? = null,
             /*Hysteria/Hysteria2*/
             var version: Int? = null,
             /*Wireguard*/
