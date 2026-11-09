@@ -73,6 +73,13 @@ jobs:
     # .github/workflows/main.yml (all ABIs; the APK step below still
     # filters to arm64-v8a).
     - name: "Build libv2ray (custom core: SSH SlowDNS)"
+      env:
+        # Our fork moves faster than proxy.golang.org indexes it: a
+        # brand-new pseudo-version 404s on sumdb ("unknown revision")
+        # until the proxy picks the commit up. Fetch the fork straight
+        # from GitHub and skip sumdb for it; every other module still
+        # uses the proxy.
+        GOPRIVATE: github.com/Taptap56/*
       run: |
         cd AndroidLibXrayLite
         export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/30.0.16248370
