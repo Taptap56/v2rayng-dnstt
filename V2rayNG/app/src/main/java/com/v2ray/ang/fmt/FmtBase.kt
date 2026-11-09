@@ -91,6 +91,17 @@ open class FmtBase {
         config.spiderX = queryParam["spx"]
         config.mldsa65Verify = queryParam["pqv"]
         config.flow = queryParam["flow"]
+
+        // DNSTT (SlowDNS) settings carried in the share link. A link
+        // without them imports exactly as before (dnsttEnabled stays
+        // off); a link with NS + pubkey is a SlowDNS server.
+        config.dnsttNS = queryParam["dnstt_ns"]?.nullIfBlank()
+        config.dnsttPubkey = queryParam["dnstt_pubkey"]?.nullIfBlank()
+        config.dnsttResolver = queryParam["dnstt_resolver"]?.nullIfBlank()
+        config.dnsttRecordType = queryParam["dnstt_record_type"]?.nullIfBlank()
+        if (!config.dnsttNS.isNullOrBlank() && !config.dnsttPubkey.isNullOrBlank()) {
+            config.dnsttEnabled = true
+        }
     }
 
     /**
@@ -125,6 +136,16 @@ open class FmtBase {
 
         val networkType = NetworkType.fromString(config.network)
         dicQuery["type"] = networkType.type
+
+        // DNSTT (SlowDNS): only when the server is actually dialed
+        // through the tunnel, so exporting a plain server is
+        // byte-identical to before.
+        if (config.isDnsttEnabled()) {
+            config.dnsttNS?.nullIfBlank()?.let { dicQuery["dnstt_ns"] = it }
+            config.dnsttPubkey?.nullIfBlank()?.let { dicQuery["dnstt_pubkey"] = it }
+            config.dnsttResolver?.nullIfBlank()?.let { dicQuery["dnstt_resolver"] = it }
+            config.dnsttRecordType?.nullIfBlank()?.let { dicQuery["dnstt_record_type"] = it }
+        }
 
         when (networkType) {
             NetworkType.TCP -> {

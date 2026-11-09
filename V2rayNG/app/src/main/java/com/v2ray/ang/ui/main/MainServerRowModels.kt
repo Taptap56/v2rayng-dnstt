@@ -57,5 +57,11 @@ private fun serverProtocolDescription(profile: ProfileItem): String {
             )
         }
     }
+    // SlowDNS (DNSTT) rides inside the tunnel, so the transport line
+    // alone hides it: mark servers dialed through DNSTT, e.g.
+    // "VMESS / ws / tls / dns" and "SSH / dns".
+    if (profile.isDnsttEnabled() || profile.isSshSlowDns()) {
+        parts.add("dns")
+    }
     return parts.joinToString(" / ")
 }

@@ -412,7 +412,8 @@ abstract class BaseServerActivity : BaseComponentActivity() {
         FormTextField(
             stringResource(R.string.server_lab_dnstt_resolver),
             state.dnsttResolver,
-            { state.dnsttResolver = it }
+            { state.dnsttResolver = it },
+            placeholder = stringResource(R.string.server_hint_dnstt_resolver),
         )
     }
 

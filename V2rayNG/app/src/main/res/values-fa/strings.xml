@@ -91,6 +91,7 @@
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
+    <string name="server_hint_dnstt_resolver">1.1.1.1:53</string>
     <string name="server_lab_dnstt_record_type">DNSTT type</string>
     <string name="server_lab_ssh_username">نام کاربری</string>
     <string name="server_lab_ssh_password">رمز عبور</string>

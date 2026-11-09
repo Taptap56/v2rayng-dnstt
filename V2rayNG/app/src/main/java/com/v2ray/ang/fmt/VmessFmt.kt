@@ -90,6 +90,16 @@ object VmessFmt : FmtBase() {
         config.verifyPeerCertByName = vmessQRCode.vcn
         config.pinnedCA256 = vmessQRCode.pcs
 
+        // DNSTT (SlowDNS) settings carried in the share JSON. A link
+        // without them imports exactly as before.
+        config.dnsttNS = vmessQRCode.dnstt_ns?.nullIfBlank()
+        config.dnsttPubkey = vmessQRCode.dnstt_pubkey?.nullIfBlank()
+        config.dnsttResolver = vmessQRCode.dnstt_resolver?.nullIfBlank()
+        config.dnsttRecordType = vmessQRCode.dnstt_record_type?.nullIfBlank()
+        if (!config.dnsttNS.isNullOrBlank() && !config.dnsttPubkey.isNullOrBlank()) {
+            config.dnsttEnabled = true
+        }
+
         return config
     }
 
@@ -145,6 +155,16 @@ object VmessFmt : FmtBase() {
         }
         vmessQRCode.vcn = config.verifyPeerCertByName.orEmpty()
         vmessQRCode.pcs = config.pinnedCA256.orEmpty()
+
+        // DNSTT (SlowDNS): only when the server is actually dialed
+        // through the tunnel; null fields are omitted by Gson, so a
+        // plain server exports byte-identical to before.
+        if (config.isDnsttEnabled()) {
+            vmessQRCode.dnstt_ns = config.dnsttNS
+            vmessQRCode.dnstt_pubkey = config.dnsttPubkey
+            vmessQRCode.dnstt_resolver = config.dnsttResolver?.nullIfBlank()
+            vmessQRCode.dnstt_record_type = config.dnsttRecordType?.nullIfBlank()
+        }
 
         val json = JsonUtil.toJson(vmessQRCode)
         return Utils.encode(json)

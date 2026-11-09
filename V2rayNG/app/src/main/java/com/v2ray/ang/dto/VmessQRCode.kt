@@ -18,5 +18,13 @@ data class VmessQRCode(
     var fp: String = "",
     var insecure: String = "",
     var vcn: String = "",
-    var pcs: String = ""
+    var pcs: String = "",
+
+    // DNSTT (SlowDNS) settings, only present when the server is
+    // dialed through the tunnel. Nullable so plain Gson omits them
+    // from the JSON of a plain server (byte-identical export).
+    var dnstt_ns: String? = null,
+    var dnstt_pubkey: String? = null,
+    var dnstt_resolver: String? = null,
+    var dnstt_record_type: String? = null
 )
