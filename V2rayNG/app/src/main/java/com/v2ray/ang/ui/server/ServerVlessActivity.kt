@@ -41,6 +41,7 @@ class ServerVlessActivity : BaseServerActivity() {
                 scope = scope,
                 buildProfileItem = { uiState.toProfileItem(initialConfig) }
             )
+            DnsttFields(uiState)
         }
     }
 

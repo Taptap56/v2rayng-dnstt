@@ -296,12 +296,37 @@ object CoreConfigManager {
             return
         }
         outbound.tag = resolvedOutbound.tag
+        // DNSTT (SlowDNS): the primary (prepended) server dials through the
+        // local dnstt-client SOCKS5 listener instead of directly. Only the
+        // primary is wired: the client runs with that server's NS/pubkey.
+        if (prepend && profile.isDnsttEnabled()) {
+            attachDnsttDialerProxy(outbound, v2rayConfig, existingTags)
+        }
         if (prepend) {
             v2rayConfig.outbounds.add(0, outbound)
         } else {
             v2rayConfig.outbounds.add(outbound)
         }
         existingTags.add(resolvedOutbound.tag)
+    }
+
+    /**
+     * Adds the DNSTT SOCKS outbound (the bundled dnstt-client's local
+     * listener) once and points [outbound]'s dialerProxy at it, so Xray dials
+     * this server through the DNSTT tunnel.
+     */
+    private fun attachDnsttDialerProxy(
+        outbound: V2rayConfig.OutboundBean,
+        v2rayConfig: V2rayConfig,
+        existingTags: MutableSet<String>,
+    ) {
+        val dnsttTag = AppConfig.TAG_DNSTT_SOCKS
+        if (dnsttTag !in existingTags) {
+            v2rayConfig.outbounds.add(CoreOutboundBuilder.createDnsttSocksOutbound())
+            existingTags.add(dnsttTag)
+            LogUtil.i(AppConfig.TAG, "DNSTT: added SOCKS outbound '$dnsttTag'")
+        }
+        outbound.ensureSockopt().dialerProxy = dnsttTag
     }
 
     /**

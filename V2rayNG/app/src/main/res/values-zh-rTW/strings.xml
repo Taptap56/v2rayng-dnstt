@@ -86,6 +86,10 @@
     <string name="server_lab_stream_alpn" translatable="false">ALPN</string>
     <string name="server_lab_allow_insecure">跳過憑證驗證 (allowInsecure)</string>
     <string name="server_lab_sni" translatable="false">SNI</string>
+    <string name="server_lab_dnstt">DNSTT (SlowDNS)</string>
+    <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
+    <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
+    <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
     <string name="server_lab_address3">伺服器位址</string>
     <string name="server_lab_port3">伺服器埠</string>
     <string name="server_lab_id3">密碼</string>

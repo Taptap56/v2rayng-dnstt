@@ -367,6 +367,38 @@ abstract class BaseServerActivity : BaseComponentActivity() {
         }
     }
 
+    /**
+     * DNSTT (SlowDNS) fields: enable toggle plus the tunnel domain (NS),
+     * server public key and resolver. Shown on VMess/VLESS editors; when
+     * enabled, the server's outbound dials through the bundled dnstt-client.
+     */
+    @Composable
+    protected fun DnsttFields(state: ServerUiState) {
+        SettingsSwitchItem(
+            title = stringResource(R.string.server_lab_dnstt),
+            checked = state.dnsttEnabled,
+            onCheckedChange = { state.dnsttEnabled = it }
+        )
+        if (!state.dnsttEnabled) {
+            return
+        }
+        FormTextField(
+            stringResource(R.string.server_lab_dnstt_ns),
+            state.dnsttNS,
+            { state.dnsttNS = it }
+        )
+        FormTextField(
+            stringResource(R.string.server_lab_dnstt_pubkey),
+            state.dnsttPubkey,
+            { state.dnsttPubkey = it }
+        )
+        FormTextField(
+            stringResource(R.string.server_lab_dnstt_resolver),
+            state.dnsttResolver,
+            { state.dnsttResolver = it }
+        )
+    }
+
     protected fun validateBasicConfig(state: ServerUiState): Boolean {
         val remarksErr = state.remarks.isBlank()
         val addressErr = state.address.isBlank()

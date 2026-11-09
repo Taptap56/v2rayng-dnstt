@@ -63,6 +63,10 @@ class ServerUiState(
     echConfigList: String = "",
     verifyPeerCertByName: String = "",
     pinnedCA256: String = "",
+    dnsttEnabled: Boolean = false,
+    dnsttNS: String = "",
+    dnsttPubkey: String = "",
+    dnsttResolver: String = "",
     isFetchingCert: Boolean = false
 ) {
     var configType by mutableStateOf(configType)
@@ -112,6 +116,10 @@ class ServerUiState(
     var echConfigList by mutableStateOf(echConfigList)
     var verifyPeerCertByName by mutableStateOf(verifyPeerCertByName)
     var pinnedCA256 by mutableStateOf(pinnedCA256)
+    var dnsttEnabled by mutableStateOf(dnsttEnabled)
+    var dnsttNS by mutableStateOf(dnsttNS)
+    var dnsttPubkey by mutableStateOf(dnsttPubkey)
+    var dnsttResolver by mutableStateOf(dnsttResolver)
     var isFetchingCert by mutableStateOf(isFetchingCert)
 
     var isRemarksError by mutableStateOf(false)
@@ -184,7 +192,11 @@ class ServerUiState(
             mldsa65Verify = mldsa65Verify,
             echConfigList = echConfigList,
             verifyPeerCertByName = verifyPeerCertByName,
-            pinnedCA256 = pinnedCA256
+            pinnedCA256 = pinnedCA256,
+            dnsttEnabled = dnsttEnabled,
+            dnsttNS = dnsttNS.nullIfBlank(),
+            dnsttPubkey = dnsttPubkey.nullIfBlank(),
+            dnsttResolver = dnsttResolver.nullIfBlank()
         )
     }
 
@@ -239,7 +251,11 @@ class ServerUiState(
                 mldsa65Verify = initialConfig.mldsa65Verify ?: "",
                 echConfigList = initialConfig.echConfigList ?: "",
                 verifyPeerCertByName = initialConfig.verifyPeerCertByName ?: "",
-                pinnedCA256 = initialConfig.pinnedCA256 ?: ""
+                pinnedCA256 = initialConfig.pinnedCA256 ?: "",
+                dnsttEnabled = initialConfig.dnsttEnabled == true,
+                dnsttNS = initialConfig.dnsttNS ?: "",
+                dnsttPubkey = initialConfig.dnsttPubkey ?: "",
+                dnsttResolver = initialConfig.dnsttResolver ?: ""
             )
 
         fun from(

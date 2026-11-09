@@ -74,7 +74,22 @@ data class ProfileItem(
     var proxyChainProfiles: String? = null,
 
     var browserDialerMode: String? = null,
+
+    // DNSTT (SlowDNS): when enabled, this server's outbound dials through the
+    // bundled dnstt-client (local SOCKS5 on 127.0.0.1:18080) instead of
+    // directly. dnsttNS is the tunnel domain (the user's NS), dnsttPubkey the
+    // DNSTT server public key (64 hex chars), dnsttResolver the DNS resolver
+    // (host:port, default 1.1.1.1:53). New fields only: absent in older
+    // configs, which Gson reads as null (disabled).
+    var dnsttEnabled: Boolean? = null,
+    var dnsttNS: String? = null,
+    var dnsttPubkey: String? = null,
+    var dnsttResolver: String? = null,
 ) {
+
+    /** True when DNSTT is enabled and has the NS domain and server public key it needs. */
+    fun isDnsttEnabled(): Boolean =
+        dnsttEnabled == true && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank()
 
     companion object {
         fun create(configType: EConfigType): ProfileItem =

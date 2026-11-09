@@ -153,6 +153,10 @@ object CoreServiceManager {
         if (dialerAddr.isNotNullEmpty()) {
             CoreNativeManager.reconcileBrowserDialer(dialerAddr)
         }
+        // DNSTT (SlowDNS): start the bundled dnstt-client before the core
+        // starts, so its SOCKS listener is up before Xray dials through it.
+        // No-op when the selected server has DNSTT disabled.
+        DnsttClientManager.ensureStarted(service, config)
         coreController.startLoop(result.content, tunFd)
 
         if (!isRunning()) {
@@ -213,6 +217,9 @@ object CoreServiceManager {
             browserDialer!!.stop()
             browserDialer = null
         }
+
+        // DNSTT (SlowDNS): stop the bundled dnstt-client with the core.
+        DnsttClientManager.stop()
 
         MessageHelper.sendMsg2UI(service, AppConfig.MSG_STATE_STOP_SUCCESS, "")
         NotificationManager.cancelNotification()

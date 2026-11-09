@@ -118,6 +118,19 @@ object AppConfig {
     const val TAG_BALANCER = "balancer-main"
     const val TAG_BALANCER_PRE = "balancer"
 
+    /** DNSTT (SlowDNS) local client: the bundled dnstt-client binary listens on this
+     * loopback SOCKS5 port and the selected server's outbound dials through it
+     * (streamSettings.sockopt.dialerProxy). No user credential is stored here;
+     * the NS domain, server public key and resolver come from the selected
+     * server's own settings at runtime. */
+    const val TAG_DNSTT_SOCKS = "dnstt-socks"
+    const val DNSTT_ASSET_NAME = "dnstt-client"
+    const val DNSTT_BIN_NAME = "dnstt-client"
+    const val DNSTT_LISTEN_HOST = "127.0.0.1"
+    const val DNSTT_LISTEN_PORT = 18080
+    const val DNSTT_DEFAULT_RESOLVER = "1.1.1.1:53"
+    const val DNSTT_DEFAULT_KCP_WINDOW = 512
+
     /** Network-related constants. */
     const val UPLINK = "uplink"
     const val DOWNLINK = "downlink"

@@ -112,6 +112,24 @@ object CoreOutboundBuilder {
         }
     }
 
+    /**
+     * Builds the DNSTT SOCKS outbound: the bundled dnstt-client's local
+     * listener. The selected server's outbound dials through it via
+     * streamSettings.sockopt.dialerProxy.
+     */
+    fun createDnsttSocksOutbound(): OutboundBean {
+        return OutboundBean(
+            tag = AppConfig.TAG_DNSTT_SOCKS,
+            protocol = EConfigType.SOCKS.name.lowercase(),
+            settings = OutboundBean.OutSettingsBean(
+                address = AppConfig.DNSTT_LISTEN_HOST,
+                port = AppConfig.DNSTT_LISTEN_PORT,
+                level = AppConfig.DEFAULT_LEVEL
+            ),
+            streamSettings = OutboundBean.StreamSettingsBean()
+        )
+    }
+
     // ── Per-protocol builders — implementations are identical to each *Fmt.toOutbound ──
 
     private fun toOutboundVmess(profileItem: ProfileItem): OutboundBean? {
