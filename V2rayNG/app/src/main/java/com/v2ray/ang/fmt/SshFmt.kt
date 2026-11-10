@@ -13,12 +13,19 @@ object SshFmt : FmtBase() {
 
     /**
      * Parses an SSH URL into a ProfileItem object, including the DNSTT
-     * (SlowDNS) settings and the transport method (HTTP Custom style)
+     * (SlowDNS) settings and the transport layers (HTTP Custom style)
      * carried as query parameters:
-     * ssh://username:password@host:port?dnstt_ns=...&dnstt_pubkey=...&dnstt_resolver=...&dnstt_record_type=null&method=ws-tls&ws_path=/ssh&ws_host=...&sni=...&sni_version=tls1.2&insecure=1#remarks
-     * A plain ssh:// link without DNSTT/method parameters imports as a
+     * ssh://username:password@host:port?dnstt_ns=...&dnstt_pubkey=...&dnstt_resolver=...&dnstt_record_type=null&methods=payload,tls,slowdns&remote_proxy=user:pass@proxy.example.com:8080&payload=...&sni=...&sni_version=tls1.2&insecure=1#remarks
+     * A plain ssh:// link without DNSTT/layer parameters imports as a
      * direct SSH server, exactly as before. The private key, when
      * present, is read from the "private_key" query parameter.
+     *
+     * Legacy links (single "method" parameter, or no method) still
+     * import: "payload"/"tls"/"slowdns" map to the matching single
+     * layer, "ws"/"ws-tls" map to direct (the WS dial was removed —
+     * HTTP Custom has no WS transport for SSH, a WebSocket upgrade
+     * is sent as a payload instead), and any other value is ignored.
+     * When both "methods" and "method" are present, "methods" wins.
      *
      * @param str the SSH URL string to parse
      * @return the parsed ProfileItem object, or null if parsing fails
@@ -56,12 +63,36 @@ object SshFmt : FmtBase() {
             config.dnsttResolver = queryParam["dnstt_resolver"]?.nullIfBlank()
             config.dnsttRecordType = queryParam["dnstt_record_type"]?.nullIfBlank()
             config.sshPrivateKey = queryParam["private_key"]?.nullIfBlank()
-            // Transport method (HTTP Custom style). A link without it
-            // is a direct SSH server, as before.
-            config.sshMethod = queryParam["method"]?.nullIfBlank()
+            // Transport layers (HTTP Custom style): a comma-separated
+            // "methods" list, e.g. "payload,tls,slowdns". Unknown
+            // names are ignored.
+            val methods = queryParam["methods"]?.split(",")
+                ?.map { it.trim().lowercase() }
+                ?.filter { it.isNotEmpty() }
+                ?.toSet().orEmpty()
+            if (methods.isNotEmpty()) {
+                config.sshUsePayload = methods.contains(AppConfig.SSH_METHOD_PAYLOAD)
+                config.sshUseEnhanced = methods.contains(AppConfig.SSH_METHOD_ENHANCED)
+                config.sshUseTls = methods.contains(AppConfig.SSH_METHOD_TLS)
+                config.sshUseSlowdns = methods.contains(AppConfig.SSH_METHOD_SLOWDNS)
+            } else {
+                // Legacy single "method" parameter.
+                when (queryParam["method"]?.trim()?.lowercase()) {
+                    AppConfig.SSH_METHOD_PAYLOAD -> config.sshUsePayload = true
+                    AppConfig.SSH_METHOD_ENHANCED -> config.sshUseEnhanced = true
+                    AppConfig.SSH_METHOD_TLS -> config.sshUseTls = true
+                    AppConfig.SSH_METHOD_SLOWDNS -> config.sshUseSlowdns = true
+                    // "ws"/"ws-tls" (and anything else) map to
+                    // direct: no layer. The WS dial is gone.
+                    else -> Unit
+                }
+                // Keep the legacy value for the migration helpers
+                // (ProfileItem.sshEffectiveUse*), so an old link
+                // behaves like an old profile.
+                config.sshMethod = queryParam["method"]?.nullIfBlank()
+            }
+            config.sshRemoteProxy = queryParam["remote_proxy"]?.nullIfBlank()
             config.sshPayload = queryParam["payload"]?.nullIfBlank()
-            config.sshWsPath = queryParam["ws_path"]?.nullIfBlank()
-            config.sshWsHost = queryParam["ws_host"]?.nullIfBlank()
             config.sshSni = queryParam["sni"]?.nullIfBlank()
             config.sshSniVersion = queryParam["sni_version"]?.nullIfBlank()
             config.sshInsecure = when (queryParam["insecure"]?.lowercase()) {
@@ -77,8 +108,8 @@ object SshFmt : FmtBase() {
      * Converts a ProfileItem object to an SSH URI string (without the
      * "ssh://" scheme prefix; shareConfig prepends it). The DNSTT
      * parameters are only included when the server is actually dialed
-     * through SlowDNS, and the method parameters only when a method is
-     * set, so sharing a plain SSH server yields the same URL as
+     * through SlowDNS, and the layer parameters only when a layer is
+     * on, so sharing a plain SSH server yields the same URL as
      * before. The password lives in the userinfo, like the other
      * protocols; the private key is a URL-encoded query parameter,
      * only when present.
@@ -95,19 +126,23 @@ object SshFmt : FmtBase() {
             config.dnsttRecordType?.nullIfBlank()?.let { dicQuery["dnstt_record_type"] = it }
         }
         config.sshPrivateKey?.nullIfBlank()?.let { dicQuery["private_key"] = it }
-        // Transport method (HTTP Custom style): only the parameters
-        // of the selected method are included, so a direct SSH server
-        // shares the same URL as before.
-        val method = config.sshMethod?.nullIfBlank()
-        method?.let { dicQuery["method"] = it }
-        if (method == AppConfig.SSH_METHOD_PAYLOAD) {
+        // Transport layers (HTTP Custom style): a comma-separated
+        // "methods" list, only when at least one layer is on, so a
+        // direct SSH server shares the same URL as before.
+        val methods = buildList {
+            if (config.sshEffectiveUsePayload()) add(AppConfig.SSH_METHOD_PAYLOAD)
+            if (config.sshEffectiveUseEnhanced()) add(AppConfig.SSH_METHOD_ENHANCED)
+            if (config.sshEffectiveUseTls()) add(AppConfig.SSH_METHOD_TLS)
+            if (config.sshEffectiveUseSlowdns()) add(AppConfig.SSH_METHOD_SLOWDNS)
+        }
+        if (methods.isNotEmpty()) {
+            dicQuery["methods"] = methods.joinToString(",")
+        }
+        config.sshRemoteProxy?.nullIfBlank()?.let { dicQuery["remote_proxy"] = it }
+        if (config.sshEffectiveUsePayload() || config.sshEffectiveUseEnhanced()) {
             config.sshPayload?.nullIfBlank()?.let { dicQuery["payload"] = it }
         }
-        if (method == AppConfig.SSH_METHOD_WS || method == AppConfig.SSH_METHOD_WS_TLS) {
-            config.sshWsPath?.nullIfBlank()?.let { dicQuery["ws_path"] = it }
-            config.sshWsHost?.nullIfBlank()?.let { dicQuery["ws_host"] = it }
-        }
-        if (method == AppConfig.SSH_METHOD_WS_TLS || method == AppConfig.SSH_METHOD_TLS) {
+        if (config.sshEffectiveUseTls()) {
             config.sshSni?.nullIfBlank()?.let { dicQuery["sni"] = it }
             config.sshSniVersion?.nullIfBlank()?.let { dicQuery["sni_version"] = it }
             if (config.sshInsecure == true) dicQuery["insecure"] = "1"

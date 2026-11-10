@@ -94,17 +94,27 @@ data class ProfileItem(
     // null for every other type. Like password, never logged.
     var sshPrivateKey: String? = null,
 
-    // SSH transport method (HTTP Custom style): "" (direct TCP dial,
-    // default), "payload", "ws", "ws-tls", "tls", "slowdns".
-    // sshPayload is the custom payload template ([host]/[port]);
-    // sshWsPath/sshWsHost the WebSocket path/host; sshSni/sshSniVersion/
-    // sshInsecure the TLS SNI, SNI version ("default" = auto) and
-    // skip-verify toggle. Only used by EConfigType.SSH. New fields
+    // SSH transport layers (HTTP Custom style): the four methods are
+    // independent, combinable on/off layers, not a single choice.
+    // sshUsePayload sends the custom payload template ([host]/[port])
+    // fire-and-forget; sshUseEnhanced sends it and then reads the
+    // server's HTTP response headers; sshUseTls adds the TLS
+    // handshake (sshSni, sshSniVersion "default" = auto, sshInsecure
+    // skip-verify); sshUseSlowdns dials through DNSTT. sshRemoteProxy
+    // is the remote HTTP CONNECT proxy ("[user:pass@]host:port"), the
+    // first hop when set. No layer on = direct TCP dial (the behaviour
+    // of older profiles). sshMethod is the legacy single method
+    // ("" / "payload" / "ws" / "ws-tls" / "tls" / "slowdns"), kept
+    // only so older profiles and links can migrate to the layers;
+    // new saves write null. Only used by EConfigType.SSH. New fields
     // only: absent in older configs, which Gson reads as null.
     var sshMethod: String? = null,
+    var sshUsePayload: Boolean? = null,
+    var sshUseEnhanced: Boolean? = null,
+    var sshUseTls: Boolean? = null,
+    var sshUseSlowdns: Boolean? = null,
+    var sshRemoteProxy: String? = null,
     var sshPayload: String? = null,
-    var sshWsPath: String? = null,
-    var sshWsHost: String? = null,
     var sshSni: String? = null,
     var sshSniVersion: String? = null,
     var sshInsecure: Boolean? = null,
@@ -118,14 +128,43 @@ data class ProfileItem(
      * True when this is an SSH server dialed through a DNSTT (SlowDNS)
      * tunnel: SSH keeps dnsttEnabled off (no dialerProxy — the tunnel
      * lives inside the core), so the SSH condition is type + NS +
-     * pubkey, not the DNSTT toggle. The transport method also gates
-     * it: an explicit non-SlowDNS method (payload/ws/tls/direct) wins
-     * over stale DNSTT fields, while a blank method keeps the old
-     * behaviour (DNSTT fields set implies SlowDNS).
+     * pubkey, not the DNSTT toggle. The layers gate it: when any
+     * layer flag is set, the slowdns flag alone decides (so turning
+     * SlowDNS off in the editor stays off even with DNSTT fields
+     * present); when no layer flag is set at all, the legacy rule
+     * applies (blank/legacy-slowdns method + DNSTT fields set
+     * implies SlowDNS), and any other legacy method wins over stale
+     * DNSTT fields.
      */
-    fun isSshSlowDns(): Boolean =
-        configType == EConfigType.SSH && !dnsttNS.isNullOrBlank() && !dnsttPubkey.isNullOrBlank() &&
-            (sshMethod.isNullOrBlank() || sshMethod == AppConfig.SSH_METHOD_SLOWDNS)
+    fun isSshSlowDns(): Boolean {
+        if (configType != EConfigType.SSH) return false
+        if (dnsttNS.isNullOrBlank() || dnsttPubkey.isNullOrBlank()) return false
+        if (sshUsePayload != null || sshUseEnhanced != null || sshUseTls != null || sshUseSlowdns != null) {
+            return sshUseSlowdns == true
+        }
+        return sshMethod.isNullOrBlank() || sshMethod == AppConfig.SSH_METHOD_SLOWDNS
+    }
+
+    /**
+     * Effective layer flags: the layer flag wins; otherwise the
+     * legacy single sshMethod maps to its layer. "ws"/"ws-tls" map
+     * to no layer (direct): the WS dial is gone. These are used by
+     * the editor (ServerUiState) and by the core builder
+     * (CoreOutboundBuilder), so a profile stored by the previous
+     * release keeps its method even if it was never re-opened in
+     * the editor.
+     */
+    fun sshEffectiveUsePayload(): Boolean =
+        sshUsePayload == true || sshMethod == AppConfig.SSH_METHOD_PAYLOAD
+
+    fun sshEffectiveUseEnhanced(): Boolean =
+        sshUseEnhanced == true || sshMethod == AppConfig.SSH_METHOD_ENHANCED
+
+    fun sshEffectiveUseTls(): Boolean =
+        sshUseTls == true || sshMethod == AppConfig.SSH_METHOD_TLS
+
+    fun sshEffectiveUseSlowdns(): Boolean =
+        sshUseSlowdns == true || sshMethod == AppConfig.SSH_METHOD_SLOWDNS || isSshSlowDns()
 
     companion object {
         fun create(configType: EConfigType): ProfileItem =

@@ -1,9 +1,17 @@
 package com.v2ray.ang.ui.server
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.ProfileItem
@@ -15,24 +23,29 @@ import com.v2ray.ang.ui.compose.SettingsSwitchItem
 /**
  * SSH server editor. The SSH server is a first-class Xray outbound
  * (proxy/ssh in the forked core): one persistent SSH client, one
- * direct-tcpip channel per connection. The transport method (HTTP
- * Custom style) selects how the server is reached: direct TCP,
- * a custom payload, WebSocket, WebSocket over TLS, direct TLS with
- * SNI only, or SlowDNS (DNSTT). The DNSTT fields are shown only for
- * the SlowDNS method; picking another method dials the SSH server
- * without the tunnel.
+ * direct-tcpip channel per connection. The transport is built from
+ * HTTP Custom style method layers that can be combined (Payload,
+ * Enhanced, TLS, SlowDNS — all four can be on at once, like HTTP
+ * Custom): a remote HTTP CONNECT proxy as the first hop, a custom
+ * payload, an enhanced payload (payload + read the server's HTTP
+ * response headers), a TLS handshake with SNI, and the DNSTT
+ * (SlowDNS) dial. No layer on means a direct TCP dial. The DNSTT
+ * fields are shown only for the SlowDNS layer.
  */
 class ServerSshActivity : BaseServerActivity() {
 
     override val serverConfigType: EConfigType = EConfigType.SSH
 
     override fun validateProtocolConfig(config: ProfileItem): Boolean {
-        // Method-specific requirements (the core enforces the same).
-        return when (config.sshMethod) {
-            AppConfig.SSH_METHOD_PAYLOAD -> !config.sshPayload.isNullOrBlank()
-            AppConfig.SSH_METHOD_SLOWDNS -> !config.dnsttNS.isNullOrBlank() && !config.dnsttPubkey.isNullOrBlank()
-            else -> true
+        // Layer requirements (the core enforces the same).
+        if (config.sshEffectiveUsePayload() || config.sshEffectiveUseEnhanced()) {
+            if (config.sshPayload.isNullOrBlank()) return false
         }
+        if (config.sshEffectiveUseSlowdns()) {
+            if (config.dnsttNS.isNullOrBlank() || config.dnsttPubkey.isNullOrBlank()) return false
+        }
+        if (!isValidRemoteProxy(config.sshRemoteProxy.orEmpty())) return false
+        return true
     }
 
     @Composable
@@ -84,57 +97,69 @@ class ServerSshActivity : BaseServerActivity() {
 
     @Composable
     private fun SshMethodFields(state: ServerUiState) {
-        FormDropdownField(
-            stringResource(R.string.server_lab_ssh_method),
-            sshMethodLabel(state.sshMethod),
-            listOf("Direct", "Payload", "WS", "WS+TLS", "TLS", "SlowDNS"),
-            { state.sshMethod = sshMethodValue(it) }
+        // HC-style multi-select chips: the four methods are
+        // independent layers, several may be on at once. The labels
+        // are protocol names, so they are not localized.
+        Text(
+            text = stringResource(R.string.server_lab_ssh_method),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         )
-        when (state.sshMethod) {
-            AppConfig.SSH_METHOD_PAYLOAD -> {
-                FormTextField(
-                    stringResource(R.string.server_lab_ssh_payload),
-                    state.sshPayload,
-                    { state.sshPayload = it },
-                    supportingText = stringResource(R.string.server_hint_ssh_payload),
-                )
-            }
-            AppConfig.SSH_METHOD_WS -> {
-                FormTextField(
-                    stringResource(R.string.server_lab_ssh_ws_path),
-                    state.sshWsPath,
-                    { state.sshWsPath = it },
-                    placeholder = stringResource(R.string.server_hint_ssh_ws_path),
-                )
-                FormTextField(
-                    stringResource(R.string.server_lab_ssh_ws_host),
-                    state.sshWsHost,
-                    { state.sshWsHost = it }
-                )
-            }
-            AppConfig.SSH_METHOD_WS_TLS -> {
-                FormTextField(
-                    stringResource(R.string.server_lab_ssh_ws_path),
-                    state.sshWsPath,
-                    { state.sshWsPath = it },
-                    placeholder = stringResource(R.string.server_hint_ssh_ws_path),
-                )
-                FormTextField(
-                    stringResource(R.string.server_lab_ssh_ws_host),
-                    state.sshWsHost,
-                    { state.sshWsHost = it }
-                )
-                SshTlsFields(state)
-            }
-            AppConfig.SSH_METHOD_TLS -> {
-                SshTlsFields(state)
-            }
-            AppConfig.SSH_METHOD_SLOWDNS -> {
-                DnsttFields(state, showToggle = false)
-            }
-            // Direct: no extra fields.
-            else -> Unit
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = state.sshUsePayload,
+                onClick = { state.sshUsePayload = !state.sshUsePayload },
+                label = { Text("Payload") }
+            )
+            FilterChip(
+                selected = state.sshUseEnhanced,
+                onClick = { state.sshUseEnhanced = !state.sshUseEnhanced },
+                label = { Text("Enhanced") }
+            )
+            FilterChip(
+                selected = state.sshUseTls,
+                onClick = { state.sshUseTls = !state.sshUseTls },
+                label = { Text("TLS") }
+            )
+            FilterChip(
+                selected = state.sshUseSlowdns,
+                onClick = { state.sshUseSlowdns = !state.sshUseSlowdns },
+                label = { Text("SlowDNS") }
+            )
         }
+        val showPayloadSection = state.sshUsePayload || state.sshUseEnhanced
+        if (showPayloadSection) {
+            FormTextField(
+                stringResource(R.string.server_lab_ssh_payload),
+                state.sshPayload,
+                { state.sshPayload = it },
+                supportingText = stringResource(R.string.server_hint_ssh_payload),
+            )
+            FormTextField(
+                stringResource(R.string.server_lab_ssh_remote_proxy),
+                state.sshRemoteProxy,
+                { state.sshRemoteProxy = it },
+                placeholder = stringResource(R.string.server_hint_ssh_remote_proxy),
+            )
+            // SNI fields live in the payload section when TLS is
+            // also on (like HTTP Custom).
+            if (state.sshUseTls) {
+                SshTlsFields(state)
+            }
+        } else if (state.sshUseTls) {
+            // TLS on without Payload: its own section.
+            SshTlsFields(state)
+        }
+        if (state.sshUseSlowdns) {
+            DnsttFields(state, showToggle = false)
+        }
+        // No layer on: direct TCP, no extra fields.
     }
 
     @Composable
@@ -160,26 +185,30 @@ class ServerSshActivity : BaseServerActivity() {
 }
 
 /**
- * Method dropdown labels. The labels are protocol names (like the
- * DNSTT record-type dropdown's TXT/NULL), so they are not localized;
- * the stored values are the AppConfig constants ("" for Direct).
+ * True when the remote proxy value is a valid
+ * "[user:pass@]host:port" (IPv6 bracket form allowed). Blank is
+ * valid (no proxy). Mirrors the core's parseRemoteProxy.
  */
-private fun sshMethodLabel(value: String): String = when (value) {
-    AppConfig.SSH_METHOD_PAYLOAD -> "Payload"
-    AppConfig.SSH_METHOD_WS -> "WS"
-    AppConfig.SSH_METHOD_WS_TLS -> "WS+TLS"
-    AppConfig.SSH_METHOD_TLS -> "TLS"
-    AppConfig.SSH_METHOD_SLOWDNS -> "SlowDNS"
-    else -> "Direct"
-}
-
-private fun sshMethodValue(label: String): String = when (label) {
-    "Payload" -> AppConfig.SSH_METHOD_PAYLOAD
-    "WS" -> AppConfig.SSH_METHOD_WS
-    "WS+TLS" -> AppConfig.SSH_METHOD_WS_TLS
-    "TLS" -> AppConfig.SSH_METHOD_TLS
-    "SlowDNS" -> AppConfig.SSH_METHOD_SLOWDNS
-    else -> ""
+private fun isValidRemoteProxy(value: String): Boolean {
+    val s = value.trim()
+    if (s.isEmpty()) return true
+    val hostPort = s.substringAfterLast('@', s)
+    val (host, portStr) = if (hostPort.startsWith("[")) {
+        val close = hostPort.indexOf(']')
+        if (close < 0) return false
+        if (close + 1 >= hostPort.length || hostPort[close + 1] != ':') return false
+        hostPort.substring(1, close) to hostPort.substring(close + 2)
+    } else {
+        // Unbracketed: exactly one colon (an unbracketed IPv6
+        // address is ambiguous here, like in the core).
+        if (hostPort.count { it == ':' } != 1) return false
+        val colon = hostPort.indexOf(':')
+        if (colon <= 0) return false
+        hostPort.substring(0, colon) to hostPort.substring(colon + 1)
+    }
+    if (host.isEmpty()) return false
+    val port = portStr.toIntOrNull() ?: return false
+    return port in 1..65535
 }
 
 /** SNI version dropdown labels ("Default" = auto, no forced version). */

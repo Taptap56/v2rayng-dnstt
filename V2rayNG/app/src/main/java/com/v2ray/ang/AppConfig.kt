@@ -134,12 +134,15 @@ object AppConfig {
     const val DNSTT_RECORD_TYPE_NULL = "null"
     const val DNSTT_DEFAULT_RECORD_TYPE = DNSTT_RECORD_TYPE_TXT
 
-    /** SSH transport methods (HTTP Custom style), stored in
-     * ProfileItem.sshMethod. Empty means a direct TCP dial (the
-     * behaviour of older profiles). */
+    /** SSH transport methods (HTTP Custom style). The four methods
+     * are independent, combinable layers (ProfileItem.sshUsePayload /
+     * sshUseEnhanced / sshUseTls / sshUseSlowdns); these constants
+     * are the values of the legacy single sshMethod field and of the
+     * "methods" link parameter. The WS dial was removed: HTTP Custom
+     * has no WS transport for SSH, a WebSocket upgrade is sent as a
+     * payload instead. */
     const val SSH_METHOD_PAYLOAD = "payload"
-    const val SSH_METHOD_WS = "ws"
-    const val SSH_METHOD_WS_TLS = "ws-tls"
+    const val SSH_METHOD_ENHANCED = "enhanced"
     const val SSH_METHOD_TLS = "tls"
     const val SSH_METHOD_SLOWDNS = "slowdns"
 

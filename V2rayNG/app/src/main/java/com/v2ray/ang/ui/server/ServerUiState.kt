@@ -8,7 +8,6 @@ import com.v2ray.ang.AppConfig.DEFAULT_PORT
 import com.v2ray.ang.AppConfig.DNSTT_DEFAULT_RECORD_TYPE
 import com.v2ray.ang.AppConfig.REALITY
 import com.v2ray.ang.AppConfig.SSH_DEFAULT_SNI_VERSION
-import com.v2ray.ang.AppConfig.SSH_METHOD_SLOWDNS
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_ADDRESS_V4
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_MTU
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_REMOTE_DNS
@@ -72,10 +71,12 @@ class ServerUiState(
     dnsttResolver: String = "",
     dnsttRecordType: String = DNSTT_DEFAULT_RECORD_TYPE,
     sshPrivateKey: String = "",
-    sshMethod: String = "",
+    sshUsePayload: Boolean = false,
+    sshUseEnhanced: Boolean = false,
+    sshUseTls: Boolean = false,
+    sshUseSlowdns: Boolean = false,
+    sshRemoteProxy: String = "",
     sshPayload: String = "",
-    sshWsPath: String = "",
-    sshWsHost: String = "",
     sshSni: String = "",
     sshSniVersion: String = SSH_DEFAULT_SNI_VERSION,
     sshInsecure: Boolean = false,
@@ -134,10 +135,12 @@ class ServerUiState(
     var dnsttResolver by mutableStateOf(dnsttResolver)
     var dnsttRecordType by mutableStateOf(dnsttRecordType)
     var sshPrivateKey by mutableStateOf(sshPrivateKey)
-    var sshMethod by mutableStateOf(sshMethod)
+    var sshUsePayload by mutableStateOf(sshUsePayload)
+    var sshUseEnhanced by mutableStateOf(sshUseEnhanced)
+    var sshUseTls by mutableStateOf(sshUseTls)
+    var sshUseSlowdns by mutableStateOf(sshUseSlowdns)
+    var sshRemoteProxy by mutableStateOf(sshRemoteProxy)
     var sshPayload by mutableStateOf(sshPayload)
-    var sshWsPath by mutableStateOf(sshWsPath)
-    var sshWsHost by mutableStateOf(sshWsHost)
     var sshSni by mutableStateOf(sshSni)
     var sshSniVersion by mutableStateOf(sshSniVersion)
     var sshInsecure by mutableStateOf(sshInsecure)
@@ -221,10 +224,15 @@ class ServerUiState(
             dnsttResolver = dnsttResolver.nullIfBlank(),
             dnsttRecordType = dnsttRecordType.ifBlank { DNSTT_DEFAULT_RECORD_TYPE },
             sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null,
-            sshMethod = if (isSsh) sshMethod.nullIfBlank() else null,
+            // The layers are the canonical form now; the legacy
+            // single sshMethod is no longer written.
+            sshMethod = null,
+            sshUsePayload = if (isSsh) sshUsePayload else null,
+            sshUseEnhanced = if (isSsh) sshUseEnhanced else null,
+            sshUseTls = if (isSsh) sshUseTls else null,
+            sshUseSlowdns = if (isSsh) sshUseSlowdns else null,
+            sshRemoteProxy = if (isSsh) sshRemoteProxy.nullIfBlank() else null,
             sshPayload = if (isSsh) sshPayload.nullIfBlank() else null,
-            sshWsPath = if (isSsh) sshWsPath.nullIfBlank() else null,
-            sshWsHost = if (isSsh) sshWsHost.nullIfBlank() else null,
             sshSni = if (isSsh) sshSni.nullIfBlank() else null,
             sshSniVersion = if (isSsh) sshSniVersion.ifBlank { SSH_DEFAULT_SNI_VERSION } else null,
             sshInsecure = if (isSsh) sshInsecure else null
@@ -290,15 +298,18 @@ class ServerUiState(
                 dnsttRecordType = initialConfig.dnsttRecordType?.takeIf { it.isNotBlank() }
                     ?: DNSTT_DEFAULT_RECORD_TYPE,
                 sshPrivateKey = initialConfig.sshPrivateKey ?: "",
-                // Older SlowDNS profiles have no method field: show
-                // them as SlowDNS so the editor matches the dial
-                // behaviour (blank method + DNSTT fields implies
-                // slowdns in the core).
-                sshMethod = initialConfig.sshMethod?.takeIf { it.isNotBlank() }
-                    ?: if (initialConfig.isSshSlowDns()) SSH_METHOD_SLOWDNS else "",
+                // Legacy single method migrates to the layer flags
+                // (ProfileItem.sshEffectiveUse*): a layer flag
+                // already set wins, otherwise the old method maps
+                // to its layer; "ws"/"ws-tls" map to no layer
+                // (direct), and older SlowDNS profiles (blank method
+                // + DNSTT fields) show the SlowDNS layer on.
+                sshUsePayload = initialConfig.sshEffectiveUsePayload(),
+                sshUseEnhanced = initialConfig.sshEffectiveUseEnhanced(),
+                sshUseTls = initialConfig.sshEffectiveUseTls(),
+                sshUseSlowdns = initialConfig.sshEffectiveUseSlowdns(),
+                sshRemoteProxy = initialConfig.sshRemoteProxy ?: "",
                 sshPayload = initialConfig.sshPayload ?: "",
-                sshWsPath = initialConfig.sshWsPath ?: "",
-                sshWsHost = initialConfig.sshWsHost ?: "",
                 sshSni = initialConfig.sshSni ?: "",
                 sshSniVersion = initialConfig.sshSniVersion?.takeIf { it.isNotBlank() }
                     ?: SSH_DEFAULT_SNI_VERSION,

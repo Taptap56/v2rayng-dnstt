@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Share/import format for SSH servers, including DNSTT (SlowDNS).
+ * Share/import format for SSH servers, including DNSTT (SlowDNS)
+ * and the HC-style transport layers.
  *
  * The same parsers serve every import entry point — clipboard, QR
  * code and file all funnel into AngConfigManager.parseConfig via
@@ -30,6 +31,7 @@ class SshFmtTest {
         dnsttPubkey = "a".repeat(64),
         dnsttResolver = "1.1.1.1:53",
         dnsttRecordType = "null",
+        sshUseSlowdns = true,
     )
 
     private fun assertDnsttRestored(config: ProfileItem?) {
@@ -53,6 +55,7 @@ class SshFmtTest {
 
         assertDnsttRestored(parsed)
         assertEquals("ssh dns", parsed?.remarks)
+        assertEquals(true, parsed?.sshUseSlowdns)
     }
 
     @Test
@@ -64,12 +67,14 @@ class SshFmtTest {
             "&dnstt_pubkey=" + "a".repeat(64) +
             "&dnstt_resolver=1.1.1.1%3A53" +
             "&dnstt_record_type=null" +
+            "&methods=slowdns" +
             "#ssh%20dns"
 
         val parsed = SshFmt.parse(link)
 
         assertDnsttRestored(parsed)
         assertEquals("ssh dns", parsed?.remarks)
+        assertEquals(true, parsed?.sshUseSlowdns)
     }
 
     @Test
@@ -107,6 +112,7 @@ class SshFmtTest {
             dnsttPubkey = null
             dnsttResolver = null
             dnsttRecordType = null
+            sshUseSlowdns = false
         }
 
         val uri = SshFmt.toUri(profile)
@@ -146,40 +152,51 @@ class SshFmtTest {
         assertNull(SshFmt.parse("ssh://"))
     }
 
-    private fun sshWsTlsProfile() = ProfileItem(
+    private fun sshLayeredProfile() = ProfileItem(
         configType = EConfigType.SSH,
-        remarks = "ssh ws-tls",
+        remarks = "ssh layers",
         server = "example.com",
         serverPort = "443",
         username = "alice",
         password = "secret",
-        sshMethod = "ws-tls",
-        sshWsPath = "/ssh",
-        sshWsHost = "ws.example.com",
+        sshUsePayload = true,
+        sshUseEnhanced = true,
+        sshUseTls = true,
+        sshUseSlowdns = true,
+        sshRemoteProxy = "user:pass@proxy.example.com:8080",
+        sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
         sshSni = "sni.example.com",
         sshSniVersion = "tls1.2",
         sshInsecure = true,
+        dnsttNS = "ns.example.com",
+        dnsttPubkey = "a".repeat(64),
+        dnsttResolver = "1.1.1.1:53",
+        dnsttRecordType = "null",
     )
 
     @Test
-    fun roundTrip_sshWsTlsMethod() {
-        val uri = "ssh://" + SshFmt.toUri(sshWsTlsProfile())
+    fun roundTrip_sshLayers() {
+        val uri = "ssh://" + SshFmt.toUri(sshLayeredProfile())
 
         val parsed = SshFmt.parse(uri)
 
         assertEquals(EConfigType.SSH, parsed?.configType)
         assertEquals("example.com", parsed?.server)
         assertEquals("443", parsed?.serverPort)
-        assertEquals("ws-tls", parsed?.sshMethod)
-        assertEquals("/ssh", parsed?.sshWsPath)
-        assertEquals("ws.example.com", parsed?.sshWsHost)
+        assertEquals(true, parsed?.sshUsePayload)
+        assertEquals(true, parsed?.sshUseEnhanced)
+        assertEquals(true, parsed?.sshUseTls)
+        assertEquals(true, parsed?.sshUseSlowdns)
+        assertEquals("user:pass@proxy.example.com:8080", parsed?.sshRemoteProxy)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", parsed?.sshPayload)
         assertEquals("sni.example.com", parsed?.sshSni)
         assertEquals("tls1.2", parsed?.sshSniVersion)
         assertEquals(true, parsed?.sshInsecure)
+        assertTrue(parsed?.isSshSlowDns() == true)
     }
 
     @Test
-    fun roundTrip_sshPayloadMethod() {
+    fun roundTrip_sshPayloadLayer() {
         val profile = ProfileItem(
             configType = EConfigType.SSH,
             remarks = "ssh payload",
@@ -187,19 +204,22 @@ class SshFmtTest {
             serverPort = "3128",
             username = "alice",
             password = "secret",
-            sshMethod = "payload",
+            sshUsePayload = true,
             sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
         )
         val uri = "ssh://" + SshFmt.toUri(profile)
 
         val parsed = SshFmt.parse(uri)
 
-        assertEquals("payload", parsed?.sshMethod)
+        assertEquals(true, parsed?.sshUsePayload)
+        assertEquals(false, parsed?.sshUseEnhanced)
+        assertEquals(false, parsed?.sshUseTls)
+        assertEquals(false, parsed?.sshUseSlowdns)
         assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", parsed?.sshPayload)
     }
 
     @Test
-    fun roundTrip_sshTlsMethod() {
+    fun roundTrip_sshTlsLayer() {
         val profile = ProfileItem(
             configType = EConfigType.SSH,
             remarks = "ssh tls",
@@ -207,7 +227,7 @@ class SshFmtTest {
             serverPort = "443",
             username = "alice",
             password = "secret",
-            sshMethod = "tls",
+            sshUseTls = true,
             sshSni = "sni.example.com",
             sshSniVersion = "tls1.3",
             sshInsecure = true,
@@ -216,16 +236,58 @@ class SshFmtTest {
 
         val parsed = SshFmt.parse(uri)
 
-        assertEquals("tls", parsed?.sshMethod)
+        assertEquals(true, parsed?.sshUseTls)
         assertEquals("sni.example.com", parsed?.sshSni)
         assertEquals("tls1.3", parsed?.sshSniVersion)
         assertEquals(true, parsed?.sshInsecure)
-        assertNull(parsed?.sshWsPath)
+        assertNull(parsed?.sshRemoteProxy)
     }
 
     @Test
-    fun importFromQrOrFile_sshMethodLinkRestoresMethod() {
+    fun importFromQrOrFile_sshMethodsLinkRestoresLayers() {
         // A literal link as it would arrive from a QR scan or a file.
+        val link = "ssh://alice:secret@example.com:443" +
+            "?methods=payload%2Ctls" +
+            "&remote_proxy=user%3Apass%40proxy.example.com%3A8080" +
+            "&payload=GET%20%2F%20HTTP%2F1.1%0AHost%3A%20%5Bhost%5D%0A%0A" +
+            "&sni=sni.example.com" +
+            "&sni_version=tls1.2" +
+            "&insecure=1" +
+            "#ssh%20layers"
+
+        val parsed = SshFmt.parse(link)
+
+        assertEquals(true, parsed?.sshUsePayload)
+        assertEquals(false, parsed?.sshUseEnhanced)
+        assertEquals(true, parsed?.sshUseTls)
+        assertEquals(false, parsed?.sshUseSlowdns)
+        assertEquals("user:pass@proxy.example.com:8080", parsed?.sshRemoteProxy)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", parsed?.sshPayload)
+        assertEquals("sni.example.com", parsed?.sshSni)
+        assertEquals("tls1.2", parsed?.sshSniVersion)
+        assertEquals(true, parsed?.sshInsecure)
+        assertEquals("ssh layers", parsed?.remarks)
+    }
+
+    @Test
+    fun importLegacy_sshMethodPayloadMapsToLayer() {
+        val link = "ssh://alice:secret@example.com:3128" +
+            "?method=payload" +
+            "&payload=GET%20%2F%20HTTP%2F1.1%0AHost%3A%20%5Bhost%5D%0A%0A" +
+            "#ssh%20payload"
+
+        val parsed = SshFmt.parse(link)
+
+        assertEquals(true, parsed?.sshUsePayload)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", parsed?.sshPayload)
+    }
+
+    @Test
+    fun importLegacy_sshMethodWsTlsMapsToDirect() {
+        // A link from the previous release with method=ws-tls: the
+        // WS dial is gone, so it imports as a direct SSH server.
+        // The SNI parameters are still parsed (they are valid for
+        // the TLS layer the user can turn on).
         val link = "ssh://alice:secret@example.com:443" +
             "?method=ws-tls" +
             "&ws_path=%2Fssh" +
@@ -237,9 +299,12 @@ class SshFmtTest {
 
         val parsed = SshFmt.parse(link)
 
-        assertEquals("ws-tls", parsed?.sshMethod)
-        assertEquals("/ssh", parsed?.sshWsPath)
-        assertEquals("ws.example.com", parsed?.sshWsHost)
+        // No layer is set for a legacy WS link (the flags stay null);
+        // the effective layers are all off (direct).
+        assertEquals(false, parsed?.sshEffectiveUsePayload())
+        assertEquals(false, parsed?.sshEffectiveUseEnhanced())
+        assertEquals(false, parsed?.sshEffectiveUseTls())
+        assertEquals(false, parsed?.sshEffectiveUseSlowdns())
         assertEquals("sni.example.com", parsed?.sshSni)
         assertEquals("tls1.2", parsed?.sshSniVersion)
         assertEquals(true, parsed?.sshInsecure)
@@ -247,12 +312,40 @@ class SshFmtTest {
     }
 
     @Test
-    fun toUri_directSshOmitsMethodParams() {
+    fun importLegacy_sshMethodSlowdnsMapsToLayer() {
+        val link = "ssh://alice:secret@example.com:3128" +
+            "?method=slowdns" +
+            "&dnstt_ns=ns.example.com" +
+            "&dnstt_pubkey=" + "a".repeat(64) +
+            "#ssh%20slowdns"
+
+        val parsed = SshFmt.parse(link)
+
+        assertEquals(true, parsed?.sshUseSlowdns)
+        assertTrue(parsed?.isSshSlowDns() == true)
+    }
+
+    @Test
+    fun parse_methodsWinsOverLegacyMethod() {
+        val link = "ssh://alice:secret@example.com:443" +
+            "?methods=tls" +
+            "&method=payload" +
+            "#both"
+
+        val parsed = SshFmt.parse(link)
+
+        assertEquals(false, parsed?.sshUsePayload)
+        assertEquals(true, parsed?.sshUseTls)
+    }
+
+    @Test
+    fun toUri_directSshOmitsLayerParams() {
         val profile = sshDnsttProfile().apply {
             dnsttNS = null
             dnsttPubkey = null
             dnsttResolver = null
             dnsttRecordType = null
+            sshUseSlowdns = false
             // A stale SNI version must not leak into a direct link.
             sshSniVersion = "default"
             sshInsecure = true
@@ -260,21 +353,26 @@ class SshFmtTest {
 
         val uri = SshFmt.toUri(profile)
 
-        assertFalse(uri.contains("method="), "direct SSH export must not carry method params: $uri")
-        assertFalse(uri.contains("ws_path="), uri)
+        assertFalse(uri.contains("methods="), "direct SSH export must not carry layer params: $uri")
+        assertFalse(uri.contains("method="), uri)
+        assertFalse(uri.contains("remote_proxy="), uri)
         assertFalse(uri.contains("payload="), uri)
         assertFalse(uri.contains("sni_version="), uri)
         assertFalse(uri.contains("insecure="), uri)
     }
 
     @Test
-    fun parse_plainSshLinkHasNoMethod() {
+    fun parse_plainSshLinkHasNoLayers() {
         val parsed = SshFmt.parse("ssh://alice:secret@example.com:22#Plain")
 
-        assertNull(parsed?.sshMethod)
+        // A plain link sets no layer flags (they stay null); the
+        // effective layers are all off (direct).
+        assertEquals(false, parsed?.sshEffectiveUsePayload())
+        assertEquals(false, parsed?.sshEffectiveUseEnhanced())
+        assertEquals(false, parsed?.sshEffectiveUseTls())
+        assertEquals(false, parsed?.sshEffectiveUseSlowdns())
+        assertNull(parsed?.sshRemoteProxy)
         assertNull(parsed?.sshPayload)
-        assertNull(parsed?.sshWsPath)
-        assertNull(parsed?.sshWsHost)
         assertNull(parsed?.sshSni)
         assertNull(parsed?.sshSniVersion)
         assertNull(parsed?.sshInsecure)

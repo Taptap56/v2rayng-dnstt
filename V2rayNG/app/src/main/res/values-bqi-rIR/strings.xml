@@ -99,9 +99,8 @@
     <string name="server_lab_ssh_method">SSH method</string>
     <string name="server_lab_ssh_payload">Custom payload</string>
     <string name="server_hint_ssh_payload">Placeholders: [host] and [port]</string>
-    <string name="server_lab_ssh_ws_path">WebSocket path</string>
-    <string name="server_hint_ssh_ws_path">/</string>
-    <string name="server_lab_ssh_ws_host">WebSocket host</string>
+    <string name="server_lab_ssh_remote_proxy">Remote proxy</string>
+    <string name="server_hint_ssh_remote_proxy">user:pass@host:port</string>
     <string name="server_lab_ssh_sni">SNI (Server Name Indication)</string>
     <string name="server_lab_ssh_sni_version">SNI version</string>
     <string name="server_lab_ssh_insecure">Allow insecure connection</string>

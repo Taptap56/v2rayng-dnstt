@@ -282,18 +282,37 @@ object CoreOutboundBuilder {
             settings.username = profileItem.username
             settings.password = profileItem.password
             settings.privateKey = profileItem.sshPrivateKey.nullIfBlank()
-            settings.dnsttNs = profileItem.dnsttNS.nullIfBlank()
-            settings.dnsttPubkey = profileItem.dnsttPubkey.nullIfBlank()
-            settings.dnsttResolver = profileItem.dnsttResolver.nullIfBlank()
-            settings.dnsttRecordType = profileItem.dnsttRecordType.nullIfBlank()
+            // The DNSTT fields are only sent when the server is
+            // actually dialed through SlowDNS. The core implies
+            // SlowDNS from a set dnsttNs when no layer is on (legacy
+            // profiles), and proto3 bools cannot tell "explicitly
+            // off" from "unset" — so sending stale DNSTT fields
+            // with all layers off would wrongly re-enable SlowDNS
+            // in the core even after the user turned it off.
+            // isSshSlowDns() already applies the legacy implication
+            // (and the explicit-off rule), so gating on it keeps
+            // old profiles working and new explicit-off profiles
+            // direct. The profile itself keeps the fields, so
+            // turning SlowDNS back on needs no re-entry.
             if (profileItem.isSshSlowDns()) {
+                settings.dnsttNs = profileItem.dnsttNS.nullIfBlank()
+                settings.dnsttPubkey = profileItem.dnsttPubkey.nullIfBlank()
+                settings.dnsttResolver = profileItem.dnsttResolver.nullIfBlank()
+                settings.dnsttRecordType = profileItem.dnsttRecordType.nullIfBlank()
                 settings.dnsttKcpWindow = AppConfig.DNSTT_DEFAULT_KCP_WINDOW
             }
-            // HTTP Custom style transport method (blank = direct TCP).
-            settings.method = profileItem.sshMethod.nullIfBlank()
+            // HTTP Custom style transport layers (combinable; no
+            // layer on = direct TCP). The effective flags migrate
+            // the legacy single method, so a profile stored by the
+            // previous release keeps its method even if it was
+            // never re-opened in the editor. The legacy JSON
+            // "method" key is no longer written.
+            settings.usePayload = profileItem.sshEffectiveUsePayload()
+            settings.useEnhanced = profileItem.sshEffectiveUseEnhanced()
+            settings.useTls = profileItem.sshEffectiveUseTls()
+            settings.useSlowdns = profileItem.sshEffectiveUseSlowdns()
+            settings.remoteProxy = profileItem.sshRemoteProxy.nullIfBlank()
             settings.payload = profileItem.sshPayload.nullIfBlank()
-            settings.wsPath = profileItem.sshWsPath.nullIfBlank()
-            settings.wsHost = profileItem.sshWsHost.nullIfBlank()
             settings.sni = profileItem.sshSni.nullIfBlank()
             settings.sniVersion = profileItem.sshSniVersion.nullIfBlank()
             settings.insecure = profileItem.sshInsecure

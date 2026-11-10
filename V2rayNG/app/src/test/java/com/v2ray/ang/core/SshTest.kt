@@ -119,4 +119,107 @@ class SshTest {
         val outbound = CoreOutboundBuilder.createInitOutbound(EConfigType.SSH)!!
         assertEquals("ssh", outbound.protocol)
     }
+
+    @Test
+    fun sshOutboundPassesLayerFlagsAndRemoteProxy() {
+        val outbound = CoreOutboundBuilder.toOutboundSsh(
+            sshProfile().copy(
+                sshUsePayload = true,
+                sshUseEnhanced = true,
+                sshUseTls = true,
+                sshUseSlowdns = true,
+                sshRemoteProxy = "user:pass@proxy.example.com:8080",
+                sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
+                sshSni = "sni.example.com",
+                sshSniVersion = "tls1.2",
+                sshInsecure = true,
+            )
+        )!!
+
+        assertEquals(true, outbound.settings?.usePayload)
+        assertEquals(true, outbound.settings?.useEnhanced)
+        assertEquals(true, outbound.settings?.useTls)
+        assertEquals(true, outbound.settings?.useSlowdns)
+        assertEquals("user:pass@proxy.example.com:8080", outbound.settings?.remoteProxy)
+        assertEquals("GET / HTTP/1.1\nHost: [host]\n\n", outbound.settings?.payload)
+        assertEquals("sni.example.com", outbound.settings?.sni)
+        assertEquals("tls1.2", outbound.settings?.sniVersion)
+        assertEquals(true, outbound.settings?.insecure)
+    }
+
+    @Test
+    fun sshOutboundMigratesLegacyMethodToLayers() {
+        // A profile stored by the previous release (single method,
+        // no layer flags) keeps its method even if it was never
+        // re-opened in the editor.
+        val outbound = CoreOutboundBuilder.toOutboundSsh(
+            sshProfile(ns = null, pubkey = null).copy(
+                sshMethod = "payload",
+                sshPayload = "GET / HTTP/1.1\nHost: [host]\n\n",
+            )
+        )!!
+
+        assertEquals(true, outbound.settings?.usePayload)
+        assertEquals(false, outbound.settings?.useTls)
+        assertEquals(false, outbound.settings?.useSlowdns)
+    }
+
+    @Test
+    fun sshOutboundMigratesLegacyWsTlsMethodToDirect() {
+        val outbound = CoreOutboundBuilder.toOutboundSsh(
+            sshProfile(ns = null, pubkey = null).copy(sshMethod = "ws-tls")
+        )!!
+
+        assertEquals(false, outbound.settings?.usePayload)
+        assertEquals(false, outbound.settings?.useEnhanced)
+        assertEquals(false, outbound.settings?.useTls)
+        assertEquals(false, outbound.settings?.useSlowdns)
+    }
+
+    @Test
+    fun sshOutboundOmitsDnsttFieldsWhenSlowDnsExplicitlyOff() {
+        // All layers explicitly off + stale DNSTT fields: the
+        // outbound must not carry the tunnel settings, or the core
+        // would imply SlowDNS from the set dnsttNs (proto3 bools
+        // cannot tell "explicitly off" from "unset").
+        val outbound = CoreOutboundBuilder.toOutboundSsh(
+            sshProfile().copy(
+                sshUsePayload = false,
+                sshUseEnhanced = false,
+                sshUseTls = false,
+                sshUseSlowdns = false,
+            )
+        )!!
+
+        assertEquals(false, outbound.settings?.useSlowdns)
+        assertNull(outbound.settings?.dnsttNs)
+        assertNull(outbound.settings?.dnsttPubkey)
+        assertNull(outbound.settings?.dnsttResolver)
+        assertNull(outbound.settings?.dnsttRecordType)
+        assertNull(outbound.settings?.dnsttKcpWindow)
+    }
+
+    @Test
+    fun sshSlowDnsWithLayers() {
+        // SlowDNS layer on + NS + pubkey: SlowDNS.
+        assertTrue(sshProfile().copy(sshUseSlowdns = true).isSshSlowDns())
+        // TLS layer on (without the slowdns layer) + NS + pubkey:
+        // the layer wins over the stale DNSTT fields.
+        assertFalse(sshProfile().copy(sshUseTls = true).isSshSlowDns())
+        // No layer on + NS + pubkey: the legacy rule (blank method
+        // implies SlowDNS).
+        assertTrue(sshProfile().isSshSlowDns())
+        // All layers explicitly OFF + NS + pubkey: NOT SlowDNS. The
+        // user turned it off in the editor; the legacy implication
+        // must not re-enable it (it only applies when no layer flag
+        // is set at all).
+        assertFalse(
+            sshProfile().copy(
+                sshUsePayload = false,
+                sshUseEnhanced = false,
+                sshUseTls = false,
+                sshUseSlowdns = false,
+            ).isSshSlowDns()
+        )
+    }
 }
