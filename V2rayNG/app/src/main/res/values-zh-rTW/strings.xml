@@ -99,6 +99,7 @@
     <string name="server_lab_ssh_password">密碼</string>
     <string name="server_lab_ssh_private_key">私鑰 (可選)</string>
     <string name="server_lab_ssh_method">SSH method</string>
+    <string name="server_lab_xray_method">Xray method</string>
     <string name="server_lab_ssh_payload">Custom payload</string>
     <string name="server_hint_ssh_payload">Placeholders: [host] and [port]</string>
     <string name="server_lab_ssh_remote_proxy">Remote proxy</string>

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -418,29 +420,50 @@ abstract class BaseServerActivity : BaseComponentActivity() {
     }
 
     /**
-     * Onering fields (dharak36/xray-onering, port TB v1.0.44 /
-     * TC v1.0.60): an enable toggle plus the bug-domain field.
-     * When on, the TLS ServerName sent to the core becomes
-     * "onering:<sni>:<bug>" — the bug goes in the custom
-     * ClientHello extension 0xff00 (first), the real domain in
-     * the standard SNI. Same layout as TB/TC's Xray-method
-     * Onering chip + Bug column. Shown for VMess/VLESS/Trojan.
+     * Xray method fields (VMess/VLESS/Trojan/Shadowsocks): the method
+     * layers as multi-select chips, same layout as the SSH method
+     * section (SshMethodFields) — a "Xray method" label plus a FlowRow
+     * of FilterChips. The labels are protocol names, so they are not
+     * localized. SlowDNS is the DNSTT tunnel (same name as the SSH
+     * SlowDNS layer); Onering is the bug-domain ClientHello. No
+     * Payload chip: xray-core has no custom-payload engine (the WS
+     * handshake is standard), so Payload is SSH-only.
      */
     @Composable
-    protected fun OneringFields(state: ServerUiState) {
-        SettingsSwitchItem(
-            title = stringResource(R.string.server_lab_onering),
-            checked = state.oneringEnabled,
-            onCheckedChange = { state.oneringEnabled = it }
+    protected fun XrayMethodFields(state: ServerUiState) {
+        Text(
+            text = stringResource(R.string.server_lab_xray_method),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         )
-        if (!state.oneringEnabled) {
-            return
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = state.dnsttEnabled,
+                onClick = { state.dnsttEnabled = !state.dnsttEnabled },
+                label = { Text("SlowDNS") }
+            )
+            FilterChip(
+                selected = state.oneringEnabled,
+                onClick = { state.oneringEnabled = !state.oneringEnabled },
+                label = { Text("Onering") }
+            )
         }
-        FormTextField(
-            stringResource(R.string.server_lab_onering_bug),
-            state.oneringBug,
-            { state.oneringBug = it }
-        )
+        if (state.dnsttEnabled) {
+            DnsttFields(state, showToggle = false)
+        }
+        if (state.oneringEnabled) {
+            FormTextField(
+                stringResource(R.string.server_lab_onering_bug),
+                state.oneringBug,
+                { state.oneringBug = it }
+            )
+        }
     }
 
     protected fun validateBasicConfig(state: ServerUiState): Boolean {
