@@ -88,6 +88,8 @@
     <string name="server_lab_allow_insecure">সার্টিফিকেট যাচাই এড়িয়ে যান (allowInsecure)</string>
     <string name="server_lab_sni" translatable="false">SNI</string>
     <string name="server_lab_dnstt">DNSTT (SlowDNS)</string>
+    <string name="server_lab_onering">Onering</string>
+    <string name="server_lab_onering_bug">Bug domain</string>
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>

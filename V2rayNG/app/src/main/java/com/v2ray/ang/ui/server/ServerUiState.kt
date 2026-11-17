@@ -70,6 +70,8 @@ class ServerUiState(
     dnsttPubkey: String = "",
     dnsttResolver: String = "",
     dnsttRecordType: String = DNSTT_DEFAULT_RECORD_TYPE,
+    oneringEnabled: Boolean = false,
+    oneringBug: String = "",
     sshPrivateKey: String = "",
     sshUsePayload: Boolean = false,
     sshUseEnhanced: Boolean = false,
@@ -134,6 +136,8 @@ class ServerUiState(
     var dnsttPubkey by mutableStateOf(dnsttPubkey)
     var dnsttResolver by mutableStateOf(dnsttResolver)
     var dnsttRecordType by mutableStateOf(dnsttRecordType)
+    var oneringEnabled by mutableStateOf(oneringEnabled)
+    var oneringBug by mutableStateOf(oneringBug)
     var sshPrivateKey by mutableStateOf(sshPrivateKey)
     var sshUsePayload by mutableStateOf(sshUsePayload)
     var sshUseEnhanced by mutableStateOf(sshUseEnhanced)
@@ -223,6 +227,8 @@ class ServerUiState(
             dnsttPubkey = dnsttPubkey.nullIfBlank(),
             dnsttResolver = dnsttResolver.nullIfBlank(),
             dnsttRecordType = dnsttRecordType.ifBlank { DNSTT_DEFAULT_RECORD_TYPE },
+            oneringEnabled = oneringEnabled,
+            oneringBug = oneringBug.nullIfBlank(),
             sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null,
             // The layers are the canonical form now; the legacy
             // single sshMethod is no longer written.
@@ -297,6 +303,8 @@ class ServerUiState(
                 dnsttResolver = initialConfig.dnsttResolver ?: "",
                 dnsttRecordType = initialConfig.dnsttRecordType?.takeIf { it.isNotBlank() }
                     ?: DNSTT_DEFAULT_RECORD_TYPE,
+                oneringEnabled = initialConfig.oneringEnabled == true,
+                oneringBug = initialConfig.oneringBug ?: "",
                 sshPrivateKey = initialConfig.sshPrivateKey ?: "",
                 // Legacy single method migrates to the layer flags
                 // (ProfileItem.sshEffectiveUse*): a layer flag

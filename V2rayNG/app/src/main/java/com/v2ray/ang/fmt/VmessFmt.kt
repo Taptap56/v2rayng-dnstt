@@ -79,7 +79,13 @@ object VmessFmt : FmtBase() {
         }
 
         config.security = vmessQRCode.tls
-        config.sni = vmessQRCode.sni
+        // Onering: a link SNI "onering:<real>:<bug>" splits into the
+        // real SNI + Onering on + bug domain; a plain SNI stays as-is.
+        AppConfig.parseOneringSni(vmessQRCode.sni)?.let { (real, bug) ->
+            config.sni = real
+            config.oneringEnabled = true
+            config.oneringBug = bug
+        } ?: run { config.sni = vmessQRCode.sni }
         config.fingerPrint = vmessQRCode.fp
         config.alpn = vmessQRCode.alpn
         config.insecure = when (vmessQRCode.insecure) {
@@ -145,7 +151,9 @@ object VmessFmt : FmtBase() {
         config.path?.nullIfBlank()?.let { vmessQRCode.path = it }
 
         vmessQRCode.tls = config.security.orEmpty()
-        vmessQRCode.sni = config.sni.orEmpty()
+        // Onering: export the combined "onering:<real>:<bug>" SNI so
+        // the link copies back to TB/TC unchanged.
+        vmessQRCode.sni = (AppConfig.effectiveSni(config) ?: config.sni).orEmpty()
         vmessQRCode.fp = config.fingerPrint.orEmpty()
         vmessQRCode.alpn = config.alpn.orEmpty()
         vmessQRCode.insecure = when (config.insecure) {

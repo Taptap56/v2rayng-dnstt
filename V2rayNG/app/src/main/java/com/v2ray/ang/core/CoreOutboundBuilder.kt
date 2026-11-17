@@ -661,12 +661,21 @@ object CoreOutboundBuilder {
         } else {
             profileItem.sni
         }
+        // Onering (dharak36/xray-onering): when on with a bug domain,
+        // the ServerName sent to the core is "onering:<real>:<bug>" —
+        // the core puts the bug in extension 0xff00 (first) and the
+        // real domain in the standard SNI.
+        val effectiveSni = if (profileItem.oneringEnabled == true) {
+            AppConfig.buildOneringSni(sni, profileItem.oneringBug) ?: sni
+        } else {
+            sni
+        }
 
         streamSettings.security = streamSecurity.nullIfBlank()
         if (streamSettings.security == null) return
         val tlsSetting = OutboundBean.StreamSettingsBean.TlsSettingsBean(
             allowInsecure = allowInsecure,
-            serverName = sni.nullIfBlank(),
+            serverName = effectiveSni.nullIfBlank(),
             fingerprint = profileItem.fingerPrint.nullIfBlank(),
             alpn = profileItem.alpn?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.takeIf { !it.isNullOrEmpty() },
             echConfigList = profileItem.echConfigList.nullIfBlank(),

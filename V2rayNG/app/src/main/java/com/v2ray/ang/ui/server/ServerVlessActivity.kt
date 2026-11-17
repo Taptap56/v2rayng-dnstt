@@ -42,6 +42,7 @@ class ServerVlessActivity : BaseServerActivity() {
                 buildProfileItem = { uiState.toProfileItem(initialConfig) }
             )
             DnsttFields(uiState)
+            OneringFields(uiState)
         }
     }
 

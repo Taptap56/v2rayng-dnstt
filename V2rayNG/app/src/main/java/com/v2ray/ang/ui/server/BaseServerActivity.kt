@@ -417,6 +417,32 @@ abstract class BaseServerActivity : BaseComponentActivity() {
         )
     }
 
+    /**
+     * Onering fields (dharak36/xray-onering, port TB v1.0.44 /
+     * TC v1.0.60): an enable toggle plus the bug-domain field.
+     * When on, the TLS ServerName sent to the core becomes
+     * "onering:<sni>:<bug>" — the bug goes in the custom
+     * ClientHello extension 0xff00 (first), the real domain in
+     * the standard SNI. Same layout as TB/TC's Xray-method
+     * Onering chip + Bug column. Shown for VMess/VLESS/Trojan.
+     */
+    @Composable
+    protected fun OneringFields(state: ServerUiState) {
+        SettingsSwitchItem(
+            title = stringResource(R.string.server_lab_onering),
+            checked = state.oneringEnabled,
+            onCheckedChange = { state.oneringEnabled = it }
+        )
+        if (!state.oneringEnabled) {
+            return
+        }
+        FormTextField(
+            stringResource(R.string.server_lab_onering_bug),
+            state.oneringBug,
+            { state.oneringBug = it }
+        )
+    }
+
     protected fun validateBasicConfig(state: ServerUiState): Boolean {
         val remarksErr = state.remarks.isBlank()
         val addressErr = state.address.isBlank()

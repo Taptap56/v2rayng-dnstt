@@ -80,7 +80,13 @@ open class FmtBase {
             allowInsecureKeys.any { queryParam[it] == "0" } -> false
             else -> false
         }
-        config.sni = queryParam["sni"]
+        // Onering: a link SNI "onering:<real>:<bug>" splits into the
+        // real SNI + Onering on + bug domain; a plain SNI stays as-is.
+        AppConfig.parseOneringSni(queryParam["sni"])?.let { (real, bug) ->
+            config.sni = real
+            config.oneringEnabled = true
+            config.oneringBug = bug
+        } ?: run { config.sni = queryParam["sni"] }
         config.fingerPrint = queryParam["fp"]
         config.alpn = queryParam["alpn"]
         config.echConfigList = queryParam["ech"]
@@ -113,7 +119,9 @@ open class FmtBase {
     fun getQueryDic(config: ProfileItem): HashMap<String, String> {
         val dicQuery = HashMap<String, String>()
         dicQuery["security"] = config.security?.ifEmpty { "none" }.orEmpty()
-        config.sni?.nullIfBlank()?.let { dicQuery["sni"] = it }
+        // Onering: export the combined "onering:<real>:<bug>" SNI so
+        // the link copies back to TB/TC unchanged.
+        (AppConfig.effectiveSni(config) ?: config.sni)?.nullIfBlank()?.let { dicQuery["sni"] = it }
         config.alpn?.nullIfBlank()?.let { dicQuery["alpn"] = it }
         config.echConfigList?.nullIfBlank()?.let { dicQuery["ech"] = it }
         config.verifyPeerCertByName?.nullIfBlank()?.let { dicQuery["vcn"] = it }

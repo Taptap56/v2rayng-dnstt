@@ -227,4 +227,73 @@ class VmessFmtTest {
         assertNull(parsed?.dnsttNS)
         assertFalse(parsed?.isDnsttEnabled() == true)
     }
+
+    private fun vmessOneringProfile() = ProfileItem(
+        configType = EConfigType.VMESS,
+        remarks = "vmess onering",
+        server = "support.zoom.us",
+        serverPort = "443",
+password=<redacted>
+        method = "auto",
+        network = "ws",
+        headerType = "none",
+        host = "leaseweb4.svrkencang.web.id",
+        path = "/vmess",
+        security = "tls",
+        sni = "leaseweb4.svrkencang.web.id",
+        oneringEnabled = true,
+        oneringBug = "chat.sociomile.com",
+    )
+
+    @Test
+    fun roundTrip_vmessOneringLegacyLink() {
+        val uri = "vmess://" + VmessFmt.toUri(vmessOneringProfile())
+
+        val parsed = VmessFmt.parse(uri)
+
+        assertEquals(EConfigType.VMESS, parsed?.configType)
+        assertEquals("support.zoom.us", parsed?.server)
+        assertEquals("443", parsed?.serverPort)
+        assertEquals("ws", parsed?.network)
+        assertEquals("tls", parsed?.security)
+        // The link carries the combined SNI; the profile keeps the
+        // real SNI plus the Onering toggle + bug domain.
+        assertEquals("leaseweb4.svrkencang.web.id", parsed?.sni)
+        assertEquals(true, parsed?.oneringEnabled)
+        assertEquals("chat.sociomile.com", parsed?.oneringBug)
+        // Re-exporting the parsed profile and parsing again keeps
+        // the same Onering fields (the link is legacy base64-JSON, so
+        // the combined SNI travels inside the JSON, not the URI).
+        val reParsed = VmessFmt.parse("vmess://" + VmessFmt.toUri(parsed!!))
+        assertEquals("leaseweb4.svrkencang.web.id", reParsed?.sni)
+        assertEquals(true, reParsed?.oneringEnabled)
+        assertEquals("chat.sociomile.com", reParsed?.oneringBug)
+    }
+
+    @Test
+    fun parse_vmessOneringSniSplitsRealAndBug() {
+        // A literal link as it would arrive from TB/TC (hand-built, not
+        // via the exporter) so the format itself is the test subject.
+        val link = "vmess://11111111-2222-4333-8444-555555555555@support.zoom.us:443" +
+            "?security=tls&type=ws&host=leaseweb4.svrkencang.web.id&path=%2Fvmess" +
+            "&sni=onering%3Aleaseweb4.svrkencang.web.id%3Achat.sociomile.com#Onering"
+
+        val parsed = VmessFmt.parse(link)
+
+        assertEquals("leaseweb4.svrkencang.web.id", parsed?.sni)
+        assertEquals(true, parsed?.oneringEnabled)
+        assertEquals("chat.sociomile.com", parsed?.oneringBug)
+    }
+
+    @Test
+    fun parse_vmessPlainSniDoesNotEnableOnering() {
+        val link = "vmess://11111111-2222-4333-8444-555555555555@example.com:443" +
+            "?security=tls&type=ws&host=example.com&path=%2Fvmess&sni=example.com#Plain"
+
+        val parsed = VmessFmt.parse(link)
+
+        assertEquals("example.com", parsed?.sni)
+        assertNull(parsed?.oneringEnabled)
+        assertNull(parsed?.oneringBug)
+    }
 }

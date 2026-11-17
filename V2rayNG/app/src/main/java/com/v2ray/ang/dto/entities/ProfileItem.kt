@@ -90,6 +90,17 @@ data class ProfileItem(
     var dnsttResolver: String? = null,
     var dnsttRecordType: String? = null,
 
+    // Onering (dharak36/xray-onering, port TB v1.0.44 / TC v1.0.60):
+    // when enabled, the TLS ServerName sent to the core is
+    // "onering:<sni>:<bug>" — the bug domain goes in the custom
+    // ClientHello extension 0xff00 (first), the real domain in the
+    // standard SNI. The plain `sni` field keeps the real domain, so
+    // a link with Onering off imports/exports exactly as before.
+    // New fields only: absent in older configs, which Gson reads as
+    // null (disabled).
+    var oneringEnabled: Boolean? = null,
+    var oneringBug: String? = null,
+
     // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
     // null for every other type. Like password, never logged.
     var sshPrivateKey: String? = null,

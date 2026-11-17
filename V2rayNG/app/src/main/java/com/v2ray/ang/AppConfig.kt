@@ -134,6 +134,40 @@ object AppConfig {
     const val DNSTT_RECORD_TYPE_NULL = "null"
     const val DNSTT_DEFAULT_RECORD_TYPE = DNSTT_RECORD_TYPE_TXT
 
+    /** Onering (dharak36/xray-onering, port TB v1.0.44 / TC v1.0.60):
+     * the TLS ServerName sent to the core is "onering:<real>:<bug>" —
+     * the bug domain goes in the custom ClientHello extension 0xff00
+     * (first), the real domain in the standard SNI. The profile keeps
+     * the real domain in `sni` and the bug in `oneringBug`, so a link
+     * with Onering off imports/exports exactly as before. */
+    const val ONERING_PREFIX = "onering:"
+
+    /** Parse an "onering:<real>:<bug>" SNI into (real, bug), or null
+     * when the SNI is not an Onering SNI. */
+    fun parseOneringSni(sni: String?): Pair<String, String>? {
+        if (sni.isNullOrBlank() || !sni.startsWith(ONERING_PREFIX)) return null
+        val parts = sni.split(":")
+        if (parts.size != 3 || parts[1].isBlank() || parts[2].isBlank()) return null
+        return parts[1] to parts[2]
+    }
+
+    /** Build an "onering:<real>:<bug>" SNI, or null when the bug
+     * domain is blank (Onering off / no bug). */
+    fun buildOneringSni(real: String?, bug: String?): String? {
+        if (bug.isNullOrBlank()) return null
+        val r = real?.ifBlank { null } ?: return null
+        return "$ONERING_PREFIX$r:$bug"
+    }
+
+    /** The SNI a profile sends to the core: the Onering SNI when
+     * Onering is on with a bug domain, otherwise the plain SNI. */
+    fun effectiveSni(profile: com.v2ray.ang.dto.entities.ProfileItem): String? {
+        if (profile.oneringEnabled == true) {
+            buildOneringSni(profile.sni, profile.oneringBug)?.let { return it }
+        }
+        return profile.sni
+    }
+
     /** SSH transport methods (HTTP Custom style). The four methods
      * are independent, combinable layers (ProfileItem.sshUsePayload /
      * sshUseEnhanced / sshUseTls / sshUseSlowdns); these constants
