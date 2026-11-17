@@ -233,7 +233,7 @@ class VmessFmtTest {
         remarks = "vmess onering",
         server = "support.zoom.us",
         serverPort = "443",
-password=<redacted>
+        password = "11111111-2222-4333-8444-555555555555",
         method = "auto",
         network = "ws",
         headerType = "none",
