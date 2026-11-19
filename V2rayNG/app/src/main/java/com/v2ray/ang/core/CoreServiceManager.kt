@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
+import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.system.OsConstants
@@ -43,6 +44,7 @@ import libv2ray.CoreController
 import libv2ray.ProcessFinder
 import java.lang.ref.SoftReference
 import java.net.InetSocketAddress
+import java.net.Socket
 
 object CoreServiceManager {
 
@@ -53,6 +55,11 @@ object CoreServiceManager {
     private var browserDialer: IDialerService? = null
     private var networkMonitor: NetworkMonitor? = null
     private val connectionTestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Scope owning the Pemicu (built-in primer) loop. Stored here
+     * (the shared lifecycle owner) so the loop is cancelled when
+     * the core stops; the loop itself lives in PemicuManager. */
+    private val pemicuScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var isReloading = false
@@ -184,6 +191,31 @@ object CoreServiceManager {
         }
         NotificationManager.startSpeedNotification()
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Core started successfully")
+
+        // Pemicu (built-in primer): dial the prime domains of the
+        // profiles that have the Pemicu chip on, so the operator
+        // window stays open. Idempotent (a reload re-enters
+        // launchCore but does not spawn a duplicate loop). The
+        // dials bypass the tunnel (VpnService.protect) and never
+        // touch the core or a VMess config.
+        PemicuManager.start(pemicuScope, ::protectSocket)
+    }
+
+    /**
+     * Protects a socket from the VPN tunnel (VpnService.protect),
+     * for the Pemicu primer dial. Only the VPN run mode has a
+     * VpnService; the other modes return false (proxy-only has no
+     * tunnel to bypass, root mode routes through iptables). The
+     * app package is additionally disallowed from the VPN, so a
+     * Pemicu dial bypasses even when this returns false.
+     */
+    private fun protectSocket(socket: Socket): Boolean {
+        val service = getService() as? VpnService ?: return false
+        return try {
+            service.protect(socket)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /**
@@ -192,6 +224,14 @@ object CoreServiceManager {
      * @return True if the core was stopped successfully, false otherwise.
      */
     fun stopCoreLoop(): Boolean {
+        // Stop the Pemicu primer first: no new dials may start
+        // while the core and the tunnel are being torn down.
+        // stop() closes the in-flight sockets (interrupts
+        // blocking dials); cancelChildren() also cancels the
+        // dial coroutines themselves (same pattern as
+        // connectionTestScope below).
+        PemicuManager.stop()
+        pemicuScope.coroutineContext.cancelChildren()
         connectionTestScope.coroutineContext.cancelChildren()
         val service = getService() ?: return false
 

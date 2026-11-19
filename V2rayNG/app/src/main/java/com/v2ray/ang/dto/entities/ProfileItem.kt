@@ -101,6 +101,20 @@ data class ProfileItem(
     var oneringEnabled: Boolean? = null,
     var oneringBug: String? = null,
 
+    // Pemicu (built-in primer, port TB v1.0.84 per-entry primer):
+    // when enabled with a prime domain, v2rayNG itself dials the
+    // prime domain (in-app TLS handshake, VpnService.protect() so
+    // the dial bypasses the tunnel) on the interval, to keep the
+    // operator window open. The prime domain is independent of the
+    // entry's address — an empty domain means the entry is not
+    // primed (no fallback to the address). pemicuInterval is in
+    // seconds (default 15, clamped 5..300 when building targets).
+    // New fields only: absent in older configs, which Gson reads as
+    // null (disabled).
+    var pemicuEnabled: Boolean? = null,
+    var pemicuDomain: String? = null,
+    var pemicuInterval: Int? = null,
+
     // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
     // null for every other type. Like password, never logged.
     var sshPrivateKey: String? = null,

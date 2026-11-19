@@ -454,6 +454,11 @@ abstract class BaseServerActivity : BaseComponentActivity() {
                 onClick = { state.oneringEnabled = !state.oneringEnabled },
                 label = { Text("Onering") }
             )
+            FilterChip(
+                selected = state.pemicuEnabled,
+                onClick = { state.pemicuEnabled = !state.pemicuEnabled },
+                label = { Text("Pemicu") }
+            )
         }
         if (state.dnsttEnabled) {
             DnsttFields(state, showToggle = false)
@@ -463,6 +468,19 @@ abstract class BaseServerActivity : BaseComponentActivity() {
                 stringResource(R.string.server_lab_onering_bug),
                 state.oneringBug,
                 { state.oneringBug = it }
+            )
+        }
+        if (state.pemicuEnabled) {
+            FormTextField(
+                stringResource(R.string.server_lab_pemicu_domain),
+                state.pemicuDomain,
+                { state.pemicuDomain = it }
+            )
+            FormTextField(
+                stringResource(R.string.server_lab_pemicu_interval),
+                state.pemicuInterval,
+                { state.pemicuInterval = it },
+                keyboardType = KeyboardType.Number,
             )
         }
     }

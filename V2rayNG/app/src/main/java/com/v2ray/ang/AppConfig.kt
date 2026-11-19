@@ -168,6 +168,16 @@ object AppConfig {
         return profile.sni
     }
 
+    /** Pemicu (built-in primer, port TB v1.0.84 per-entry primer):
+     * the prime dial always goes to the TLS port; the interval is
+     * in seconds (default 15, clamped 5..300 when targets are
+     * built). The prime domain is per-entry and independent of the
+     * entry's address. */
+    const val PEMICU_DEFAULT_PORT = 443
+    const val PEMICU_DEFAULT_INTERVAL = 15
+    const val PEMICU_MIN_INTERVAL = 5
+    const val PEMICU_MAX_INTERVAL = 300
+
     /** SSH transport methods (HTTP Custom style). The four methods
      * are independent, combinable layers (ProfileItem.sshUsePayload /
      * sshUseEnhanced / sshUseTls / sshUseSlowdns); these constants

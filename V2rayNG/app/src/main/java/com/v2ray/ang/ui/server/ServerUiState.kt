@@ -72,6 +72,9 @@ class ServerUiState(
     dnsttRecordType: String = DNSTT_DEFAULT_RECORD_TYPE,
     oneringEnabled: Boolean = false,
     oneringBug: String = "",
+    pemicuEnabled: Boolean = false,
+    pemicuDomain: String = "",
+    pemicuInterval: String = AppConfig.PEMICU_DEFAULT_INTERVAL.toString(),
     sshPrivateKey: String = "",
     sshUsePayload: Boolean = false,
     sshUseEnhanced: Boolean = false,
@@ -138,6 +141,9 @@ class ServerUiState(
     var dnsttRecordType by mutableStateOf(dnsttRecordType)
     var oneringEnabled by mutableStateOf(oneringEnabled)
     var oneringBug by mutableStateOf(oneringBug)
+    var pemicuEnabled by mutableStateOf(pemicuEnabled)
+    var pemicuDomain by mutableStateOf(pemicuDomain)
+    var pemicuInterval by mutableStateOf(pemicuInterval)
     var sshPrivateKey by mutableStateOf(sshPrivateKey)
     var sshUsePayload by mutableStateOf(sshUsePayload)
     var sshUseEnhanced by mutableStateOf(sshUseEnhanced)
@@ -229,6 +235,9 @@ class ServerUiState(
             dnsttRecordType = dnsttRecordType.ifBlank { DNSTT_DEFAULT_RECORD_TYPE },
             oneringEnabled = oneringEnabled,
             oneringBug = oneringBug.nullIfBlank(),
+            pemicuEnabled = pemicuEnabled,
+            pemicuDomain = pemicuDomain.nullIfBlank(),
+            pemicuInterval = pemicuInterval.toIntOrNull(),
             sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null,
             // The layers are the canonical form now; the legacy
             // single sshMethod is no longer written.
@@ -305,6 +314,10 @@ class ServerUiState(
                     ?: DNSTT_DEFAULT_RECORD_TYPE,
                 oneringEnabled = initialConfig.oneringEnabled == true,
                 oneringBug = initialConfig.oneringBug ?: "",
+                pemicuEnabled = initialConfig.pemicuEnabled == true,
+                pemicuDomain = initialConfig.pemicuDomain ?: "",
+                pemicuInterval = initialConfig.pemicuInterval?.toString()
+                    ?: AppConfig.PEMICU_DEFAULT_INTERVAL.toString(),
                 sshPrivateKey = initialConfig.sshPrivateKey ?: "",
                 // Legacy single method migrates to the layer flags
                 // (ProfileItem.sshEffectiveUse*): a layer flag
