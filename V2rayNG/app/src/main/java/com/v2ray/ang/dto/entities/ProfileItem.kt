@@ -109,11 +109,16 @@ data class ProfileItem(
     // entry's address — an empty domain means the entry is not
     // primed (no fallback to the address). pemicuInterval is in
     // seconds (default 15, clamped 5..300 when building targets).
+    // pemicuPort is the prime port (default 443; empty, invalid,
+    // or out of 1..65535 falls back to 443 when building targets).
+    // It is independent of the entry's port, like the domain is
+    // independent of the entry's address.
     // New fields only: absent in older configs, which Gson reads as
     // null (disabled).
     var pemicuEnabled: Boolean? = null,
     var pemicuDomain: String? = null,
     var pemicuInterval: Int? = null,
+    var pemicuPort: Int? = null,
 
     // SSH private key (PEM, key auth). Only used by EConfigType.SSH;
     // null for every other type. Like password, never logged.

@@ -92,10 +92,12 @@
     <string name="server_lab_onering_bug">Bug domain</string>
     <string name="server_lab_pemicu_domain">Pemicu domain</string>
     <string name="server_lab_pemicu_interval">Pemicu interval (seconds)</string>
+    <string name="server_lab_pemicu_port">Pemicu port</string>
     <string name="server_lab_dnstt_ns">DNSTT NS domain</string>
     <string name="server_lab_dnstt_pubkey">DNSTT public key</string>
     <string name="server_lab_dnstt_resolver">DNSTT resolver</string>
     <string name="server_hint_dnstt_resolver">1.1.1.1:53</string>
+    <string name="server_hint_pemicu_port">443</string>
     <string name="server_lab_dnstt_record_type">DNSTT type</string>
     <string name="server_lab_ssh_username">نوم منتوری</string>
     <string name="server_lab_ssh_password">رزم</string>

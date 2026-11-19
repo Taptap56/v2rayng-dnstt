@@ -34,9 +34,11 @@ import kotlin.coroutines.coroutineContext
  * bypasses even if protect() returns false. The dial never goes
  * through the xray core and never touches a VMess config or the
  * proxy path: it only reads the profile's own Pemicu fields
- * (chip, interval, domain). The SNI of the dial is the prime
+ * (chip, interval, domain, port). The SNI of the dial is the prime
  * domain itself, never the entry's address — an empty prime
- * domain means the entry is not primed (no fallback).
+ * domain means the entry is not primed (no fallback). The prime
+ * port defaults to 443 (empty, invalid, or out of 1..65535 falls
+ * back to 443) and never comes from the entry's port.
  *
  * The loop is a 1 s tick owned by CoreServiceManager (started in
  * launchCore, stopped in stopCoreLoop). It rebuilds the target
@@ -94,6 +96,15 @@ object PemicuManager {
         else -> v
     }
 
+    /** Clamp a prime port to 1..65535 (default 443 when unset or
+     * out of range — an empty/invalid editor value arrives here
+     * as null, so it also falls back to 443). */
+    fun clampPort(v: Int?): Int = when {
+        v == null -> AppConfig.PEMICU_DEFAULT_PORT
+        v < 1 || v > 65535 -> AppConfig.PEMICU_DEFAULT_PORT
+        else -> v
+    }
+
     /** The prime target of one profile, or null when the profile
      * must not be primed (chip off, or the prime domain blank).
      * The entry's address/port are never read for priming. */
@@ -103,7 +114,7 @@ object PemicuManager {
         if (host.isEmpty()) return null
         return PemicuTarget(
             host = host,
-            port = AppConfig.PEMICU_DEFAULT_PORT,
+            port = clampPort(profile.pemicuPort),
             intervalSec = clampInterval(profile.pemicuInterval),
         )
     }

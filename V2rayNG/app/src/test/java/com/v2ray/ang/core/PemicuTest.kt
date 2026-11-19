@@ -22,13 +22,17 @@ class PemicuTest {
         domain: String? = "support.zoom.us",
         enabled: Boolean? = true,
         interval: Int? = 15,
+        port: Int? = null,
         server: String? = "leaseweb4.svrkencang.web.id",
+        serverPort: String? = null,
     ) = ProfileItem(
         configType = EConfigType.VMESS,
         server = server,
+        serverPort = serverPort,
         pemicuEnabled = enabled,
         pemicuDomain = domain,
         pemicuInterval = interval,
+        pemicuPort = port,
     )
 
     @Test
@@ -41,6 +45,37 @@ class PemicuTest {
         assertEquals(300, PemicuManager.clampInterval(301))
         assertEquals(300, PemicuManager.clampInterval(10_000))
         assertEquals(60, PemicuManager.clampInterval(60))
+    }
+
+    @Test
+    fun clampPortDefaultsAndClamps() {
+        assertEquals(443, PemicuManager.clampPort(null))
+        assertEquals(443, PemicuManager.clampPort(443))
+        assertEquals(8443, PemicuManager.clampPort(8443))
+        assertEquals(1, PemicuManager.clampPort(1))
+        assertEquals(65535, PemicuManager.clampPort(65535))
+        assertEquals(443, PemicuManager.clampPort(0))
+        assertEquals(443, PemicuManager.clampPort(-5))
+        assertEquals(443, PemicuManager.clampPort(65536))
+        assertEquals(443, PemicuManager.clampPort(99999))
+    }
+
+    @Test
+    fun targetFromProfileUsesPortWhenValid() {
+        val target = PemicuManager.targetFromProfile(pemicuProfile(port = 8443))!!
+        assertEquals("support.zoom.us", target.host)
+        assertEquals(8443, target.port)
+    }
+
+    @Test
+    fun targetFromProfilePortFallsBackTo443() {
+        // Empty (null), zero, negative, and out-of-range ports all
+        // fall back to 443 — the prime port never comes from the
+        // entry, and never breaks the dial.
+        for (port in listOf<Int?>(null, 0, -5, 65536, 99999)) {
+            val target = PemicuManager.targetFromProfile(pemicuProfile(port = port))!!
+            assertEquals(AppConfig.PEMICU_DEFAULT_PORT, target.port)
+        }
     }
 
     @Test
@@ -78,6 +113,22 @@ class PemicuTest {
         )!!
         assertEquals("live.iflix.com", target.host)
         assertFalse(target.host == "leaseweb4.svrkencang.web.id")
+    }
+
+    @Test
+    fun targetFromProfileNeverReadsEntryPort() {
+        // The prime port comes only from the prime port field, even
+        // when the entry's port is different — both ways: an entry
+        // on 8443 with no prime port still primes on 443, and a
+        // prime port of 8443 is used even when the entry is on 443.
+        val defaultPort = PemicuManager.targetFromProfile(
+            pemicuProfile(serverPort = "8443")
+        )!!
+        assertEquals(AppConfig.PEMICU_DEFAULT_PORT, defaultPort.port)
+        val customPort = PemicuManager.targetFromProfile(
+            pemicuProfile(port = 8443, serverPort = "443")
+        )!!
+        assertEquals(8443, customPort.port)
     }
 
     @Test
@@ -152,6 +203,7 @@ class PemicuTest {
         assertNull(profile.pemicuEnabled)
         assertNull(profile.pemicuDomain)
         assertNull(profile.pemicuInterval)
+        assertNull(profile.pemicuPort)
         assertFalse(profile.pemicuEnabled == true)
         assertNull(PemicuManager.targetFromProfile(profile))
     }

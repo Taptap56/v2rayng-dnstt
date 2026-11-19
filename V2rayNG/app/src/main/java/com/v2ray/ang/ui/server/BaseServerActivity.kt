@@ -477,6 +477,13 @@ abstract class BaseServerActivity : BaseComponentActivity() {
                 { state.pemicuDomain = it }
             )
             FormTextField(
+                stringResource(R.string.server_lab_pemicu_port),
+                state.pemicuPort,
+                { state.pemicuPort = it },
+                keyboardType = KeyboardType.Number,
+                placeholder = stringResource(R.string.server_hint_pemicu_port),
+            )
+            FormTextField(
                 stringResource(R.string.server_lab_pemicu_interval),
                 state.pemicuInterval,
                 { state.pemicuInterval = it },

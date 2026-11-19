@@ -20,12 +20,32 @@ class ServerUiStatePemicuTest {
             pemicuEnabled = true,
             pemicuDomain = "support.zoom.us",
             pemicuInterval = 60,
+            pemicuPort = 8443,
         )
         val state = ServerUiState.from(profile)
+        assertEquals("8443", state.pemicuPort)
         val saved = state.toProfileItem(profile)
         assertEquals(true, saved.pemicuEnabled)
         assertEquals("support.zoom.us", saved.pemicuDomain)
         assertEquals(60, saved.pemicuInterval)
+        assertEquals(8443, saved.pemicuPort)
+    }
+
+    @Test
+    fun pemicuPortTextRoundTrip() {
+        // The editor port is a String (text field); non-numeric
+        // or blank text is stored as null (the manager then falls
+        // back to 443), a valid number is stored as-is.
+        val profile = ProfileItem(configType = EConfigType.VMESS)
+        val state = ServerUiState.from(profile)
+        state.pemicuPort = "abc"
+        assertNull(state.toProfileItem(profile).pemicuPort)
+        state.pemicuPort = ""
+        assertNull(state.toProfileItem(profile).pemicuPort)
+        state.pemicuPort = "8443"
+        assertEquals(8443, state.toProfileItem(profile).pemicuPort)
+        state.pemicuPort = "0"
+        assertEquals(0, state.toProfileItem(profile).pemicuPort)
     }
 
     @Test
@@ -36,6 +56,8 @@ class ServerUiStatePemicuTest {
         // The editor interval is a String (text field); the
         // default is the constant rendered as a string.
         assertEquals(com.v2ray.ang.AppConfig.PEMICU_DEFAULT_INTERVAL.toString(), state.pemicuInterval)
+        // Same for the port: the editor shows the default port.
+        assertEquals(com.v2ray.ang.AppConfig.PEMICU_DEFAULT_PORT.toString(), state.pemicuPort)
     }
 
     @Test
@@ -75,8 +97,10 @@ class ServerUiStatePemicuTest {
         val state = ServerUiState.from(profile)
         assertEquals(false, state.pemicuEnabled)
         assertEquals("", state.pemicuDomain)
+        assertEquals(com.v2ray.ang.AppConfig.PEMICU_DEFAULT_PORT.toString(), state.pemicuPort)
         val saved = state.toProfileItem(profile)
         assertEquals(false, saved.pemicuEnabled)
         assertNull(saved.pemicuDomain)
+        assertNull(saved.pemicuPort)
     }
 }

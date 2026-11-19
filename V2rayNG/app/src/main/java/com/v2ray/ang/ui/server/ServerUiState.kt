@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.v2ray.ang.AppConfig.DEFAULT_PORT
 import com.v2ray.ang.AppConfig.DNSTT_DEFAULT_RECORD_TYPE
 import com.v2ray.ang.AppConfig.PEMICU_DEFAULT_INTERVAL
+import com.v2ray.ang.AppConfig.PEMICU_DEFAULT_PORT
 import com.v2ray.ang.AppConfig.REALITY
 import com.v2ray.ang.AppConfig.SSH_DEFAULT_SNI_VERSION
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_ADDRESS_V4
@@ -76,6 +77,7 @@ class ServerUiState(
     pemicuEnabled: Boolean = false,
     pemicuDomain: String = "",
     pemicuInterval: String = PEMICU_DEFAULT_INTERVAL.toString(),
+    pemicuPort: String = PEMICU_DEFAULT_PORT.toString(),
     sshPrivateKey: String = "",
     sshUsePayload: Boolean = false,
     sshUseEnhanced: Boolean = false,
@@ -145,6 +147,7 @@ class ServerUiState(
     var pemicuEnabled by mutableStateOf(pemicuEnabled)
     var pemicuDomain by mutableStateOf(pemicuDomain)
     var pemicuInterval by mutableStateOf(pemicuInterval)
+    var pemicuPort by mutableStateOf(pemicuPort)
     var sshPrivateKey by mutableStateOf(sshPrivateKey)
     var sshUsePayload by mutableStateOf(sshUsePayload)
     var sshUseEnhanced by mutableStateOf(sshUseEnhanced)
@@ -239,6 +242,7 @@ class ServerUiState(
             pemicuEnabled = pemicuEnabled,
             pemicuDomain = pemicuDomain.nullIfBlank(),
             pemicuInterval = pemicuInterval.toIntOrNull(),
+            pemicuPort = pemicuPort.toIntOrNull(),
             sshPrivateKey = if (isSsh) sshPrivateKey.nullIfBlank() else null,
             // The layers are the canonical form now; the legacy
             // single sshMethod is no longer written.
@@ -319,6 +323,8 @@ class ServerUiState(
                 pemicuDomain = initialConfig.pemicuDomain ?: "",
                 pemicuInterval = initialConfig.pemicuInterval?.toString()
                     ?: PEMICU_DEFAULT_INTERVAL.toString(),
+                pemicuPort = initialConfig.pemicuPort?.toString()
+                    ?: PEMICU_DEFAULT_PORT.toString(),
                 sshPrivateKey = initialConfig.sshPrivateKey ?: "",
                 // Legacy single method migrates to the layer flags
                 // (ProfileItem.sshEffectiveUse*): a layer flag
