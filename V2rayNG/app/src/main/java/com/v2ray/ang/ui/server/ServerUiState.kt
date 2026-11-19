@@ -6,6 +6,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import com.v2ray.ang.AppConfig.DEFAULT_PORT
 import com.v2ray.ang.AppConfig.DNSTT_DEFAULT_RECORD_TYPE
+import com.v2ray.ang.AppConfig.PEMICU_DEFAULT_INTERVAL
 import com.v2ray.ang.AppConfig.REALITY
 import com.v2ray.ang.AppConfig.SSH_DEFAULT_SNI_VERSION
 import com.v2ray.ang.AppConfig.WIREGUARD_LOCAL_ADDRESS_V4
@@ -74,7 +75,7 @@ class ServerUiState(
     oneringBug: String = "",
     pemicuEnabled: Boolean = false,
     pemicuDomain: String = "",
-    pemicuInterval: String = AppConfig.PEMICU_DEFAULT_INTERVAL.toString(),
+    pemicuInterval: String = PEMICU_DEFAULT_INTERVAL.toString(),
     sshPrivateKey: String = "",
     sshUsePayload: Boolean = false,
     sshUseEnhanced: Boolean = false,
@@ -317,7 +318,7 @@ class ServerUiState(
                 pemicuEnabled = initialConfig.pemicuEnabled == true,
                 pemicuDomain = initialConfig.pemicuDomain ?: "",
                 pemicuInterval = initialConfig.pemicuInterval?.toString()
-                    ?: AppConfig.PEMICU_DEFAULT_INTERVAL.toString(),
+                    ?: PEMICU_DEFAULT_INTERVAL.toString(),
                 sshPrivateKey = initialConfig.sshPrivateKey ?: "",
                 // Legacy single method migrates to the layer flags
                 // (ProfileItem.sshEffectiveUse*): a layer flag

@@ -239,7 +239,7 @@ object PemicuManager {
                 }
             }
             delay(TICK_MS)
-            ensureActive()
+            coroutineContext.ensureActive()
         }
     }
 
@@ -274,9 +274,12 @@ object PemicuManager {
                 val tcpStart = System.currentTimeMillis()
                 socket.connect(InetSocketAddress(address, target.port), TCP_TIMEOUT_MS)
                 val tcpMs = System.currentTimeMillis() - tcpStart
-                // createSocket returns Socket; cast to SSLSocket
+                // getDefault() returns SocketFactory: cast the factory
+                // so the createSocket(Socket, String, Int, Boolean)
+                // overload resolves; cast the result to SSLSocket
                 // for the TLS session (protocol) and handshake.
-                val sslSocket = SSLSocketFactory.getDefault()
+                val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+                val sslSocket = factory
                     .createSocket(socket, target.host, target.port, true) as SSLSocket
                 sslSocket.soTimeout = TLS_TIMEOUT_MS
                 sslSocket.startHandshake()
